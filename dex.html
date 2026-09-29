@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Board Game Imperialism – Dex</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Space+Grotesk:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+.filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:8px 0 12px}
+input[type=search]{font:inherit;background:var(--panel);color:var(--parch);border:1px solid var(--gold);border-radius:6px;padding:6px 8px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.card{background:var(--panel);border:1px solid #0006;border-radius:8px;padding:8px;display:grid;grid-template-columns:64px 1fr;gap:8px}
+.card img{width:64px;height:64px;object-fit:contain;background:#0004;border-radius:4px}
+.card h3{margin:0;font-size:.9rem;line-height:1.2}
+.card small{color:var(--muted)}
+.badge{display:inline-block;padding:1px 7px;border-radius:10px;color:#111;font-weight:600;font-size:.72rem;margin-top:2px}
+.bars{grid-column:1/3;display:grid;grid-template-columns:34px 1fr 28px;gap:2px 6px;font-size:.7rem;color:var(--muted);align-items:center}
+.bar{height:6px;background:#0005;border-radius:3px;overflow:hidden}.bar i{display:block;height:100%;background:var(--gold)}
+.pin{color:var(--gold)}
+table.chart{border-collapse:collapse;font-size:.72rem;margin-top:8px}
+table.chart td,table.chart th{border:1px solid #0006;padding:3px 5px;text-align:center}
+td.w{background:#27ae6088}td.l{background:#c0392b88}
+.scroll{overflow:auto}
+</style>
+</head>
+<body>
+<header><h1>Dex</h1><p class="sub"><a href="index.html" style="color:var(--gold)">← Torna alla mappa</a></p></header>
+<main>
+  <section class="filters">
+    <input id="q" type="search" placeholder="Cerca nome o numero…">
+    <select id="typeSel"></select>
+    <label class="speed"><input id="pinOnly" type="checkbox"> solo intoccabili</label>
+    <span id="count" class="stats"></span>
+  </section>
+  <div id="cards" class="cards"></div>
+  <section class="logwrap"><h2>Tabella dei tipi</h2>
+    <p class="stats">Riga = attaccante. Verde = super efficace (×1.5), rosso = poco efficace (×0.67), vuoto = neutro.</p>
+    <div class="scroll"><table id="chart" class="chart"></table></div>
+  </section>
+</main>
+<script src="data/games.js"></script>
+<script src="data/stats.js"></script>
+<script src="data/types.js"></script>
+<script src="data/intoccabili.js"></script>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const tcol = Object.fromEntries(TYPES.map(t => [t.id, t]));
+const keep = new Set();
+for (const p of KEEP.split(',')) { const m = p.trim().match(/^(\d+)(?:-(\d+))?$/); if (m) for (let n = +m[1]; n <= +(m[2] || m[1]); n++) keep.add(n); }
+
+$('typeSel').innerHTML = '<option value="">Tutti i tipi</option>' + TYPES.map(t => `<option>${t.id}</option>`).join('');
+function bar(label, v, max) { return `<span>${label}</span><div class="bar"><i style="width:${Math.min(100, v / max * 100)}%"></i></div><span>${v}</span>`; }
+function render() {
+  const q = $('q').value.trim().toLowerCase(), ty = $('typeSel').value, po = $('pinOnly').checked;
+  const list = GAMES.filter(g => (!q || g.name.toLowerCase().includes(q) || String(g.n) === q)
+    && (!ty || STATS[g.id].t === ty) && (!po || keep.has(g.n)));
+  $('count').textContent = list.length + ' giochi';
+  $('cards').innerHTML = list.map(g => {
+    const s = STATS[g.id], t = tcol[s.t];
+    return `<div class="card"><img src="${g.cover}" alt="" loading="lazy"><div><h3>${keep.has(g.n) ? '<span class="pin">★</span> ' : ''}${g.n}. ${g.name}</h3>
+      <span class="badge" style="background:${t.color}">${t.icon} ${s.t}</span>${s.est ? `<br><small>stimato: ${s.est.join(', ')}</small>` : ''}</div>
+      <div class="bars">${bar('HP', s.hp, 170)}${bar('ATT', s.atk, 110)}${bar('DIF', s.def, 115)}${bar('VEL', s.spd, 110)}</div></div>`;
+  }).join('');
+}
+['q', 'typeSel', 'pinOnly'].forEach(id => $(id).addEventListener('input', render));
+$('chart').innerHTML = '<tr><th></th>' + TYPES.map(t => `<th title="${t.id}">${t.icon}</th>`).join('') + '</tr>' +
+  TYPES.map(a => `<tr><th title="${a.id}">${a.icon} ${a.id}</th>` + TYPES.map(d => {
+    const m = typeMultiplier(a.id, d.id); return `<td class="${m > 1 ? 'w' : m < 1 ? 'l' : ''}">${m > 1 ? '×1.5' : m < 1 ? '×.67' : ''}</td>`;
+  }).join('') + '</tr>').join('');
+render();
+</script>
+</body>
+</html>

@@ -13,18 +13,13 @@ BATCH = 20
 os.makedirs(CACHE, exist_ok=True)
 refresh = "--refresh" in sys.argv
 
-# Correzioni ai bgg_id sbagliati nel file sorgente: {id nel file: id BGG corretto}
-ID_FIX = {
-    "6567": "188",      # Go (era 007 James Bond: Goldfinger)
-    "4550": "1198",     # Set (era 1000 Blank White Cards)
-    "125048": "63268",  # Dobble / Spot It! (era la versione Print & Play)
-    "452499": "213460", # Unlock! (era un'avventura di Care Bears)
-    "1830": "421",      # 1830 (era Nippon Rails)
-    "2078": "247367",   # Air, Land & Sea (era Aegean Strike)
-    "10344": "12616",   # Zingo (era KooKooNauts)
-    "220520": "102794", # Caverna (era Caverna: Cave vs Cave)
-    "42107": "2448",    # Mancala (era Afro-Celt Mancala System) -> Kalah, il mancala classico
-}
+# Correzioni ai bgg_id sbagliati nel file sorgente: {id nel file: id BGG corretto}.
+# data/id_fix.json è generato da tools/find_ids.py, data/id_fix_manual.json è scritto a mano e vince.
+ID_FIX = {}
+for name in ("id_fix.json", "id_fix_manual.json"):
+    p = os.path.join(ROOT, "data", name)
+    if os.path.exists(p):
+        ID_FIX.update(json.load(open(p, encoding="utf-8")))
 
 games = json.load(open(os.path.join(ROOT, "data", "games.json"), encoding="utf-8"))
 
