@@ -64,7 +64,7 @@ function createCampaign(name) {
 // Carica una campagna nella schermata di gioco.
 function load(c) {
   stop();
-  runId++; busy = false; drawSkip = true;
+  runId++; busy = false; drawSkip = true; release();
   if (BattleUI.active) BattleUI.skip();
   clearDraw();
   cur = c;
@@ -191,7 +191,15 @@ async function playBattleScreen(ev) {
 const boardEl = $('board'), hudEl = $('hud'), hudMain = $('hudMain'), compassEl = $('compass'), arrowEl = $('arrow');
 const DIRS = ['N', 'E', 'S', 'O'];
 const bannerEl = $('banner');
-const wait = ms => new Promise(r => (drawSkip ? r() : setTimeout(r, ms / (+battleSpeed.value || 1))));
+const drawSpeedVal = () => +$('drawSpeed').value || 1;
+const wait = ms => new Promise(r => (drawSkip ? r() : setTimeout(r, ms / drawSpeedVal())));
+// attende ms (scalati sulla velocità del sorteggio); con hold resta fermo finché non si preme «Inizia lotta» o si tocca la scritta
+let releaseWait = null;
+function pause(ms, hold = false) {
+  if (drawSkip) return Promise.resolve();
+  return new Promise(r => { releaseWait = r; if (!hold) setTimeout(r, ms / drawSpeedVal()); });
+}
+function release() { if (releaseWait) { const r = releaseWait; releaseWait = null; r(); } }
 const NS = 'http://www.w3.org/2000/svg';
 
 function mark(el, cls) {
@@ -223,7 +231,7 @@ function drawArrow(from, to) {
   arrowEl.removeAttribute('hidden');
   if (!drawSkip) {
     void arrowEl.getBoundingClientRect();   // forza il ridisegno, poi parte la transizione
-    const t = 0.6 / (+battleSpeed.value || 1);
+    const t = 1.0 / drawSpeedVal();
     for (const l of [shadow, main]) { l.style.transition = `stroke-dashoffset ${t}s linear`; l.style.strokeDashoffset = 0; }
     tip.style.transition = `opacity .15s linear ${t}s`; tip.style.opacity = 1;
   }
@@ -231,7 +239,7 @@ function drawArrow(from, to) {
 }
 
 // Scritta grande a schermo: chi è stato sorteggiato (attaccante / sfidante)
-function showBanner(label, owner, kind) {
+function showBanner(label, owner, kind, withButton) {
   const g = games[owner], t = TYPES.find(x => x.id === STATS[g.id].t);
   $('bannerImg').src = g.cover;
   $('bannerLabel').textContent = label;
@@ -239,6 +247,7 @@ function showBanner(label, owner, kind) {
   $('bannerType').textContent = `${t.icon} ${t.id}`;
   bannerEl.className = 'banner ' + kind;
   bannerEl.style.setProperty('--c', colors[owner]);
+  $('bannerGo').hidden = !withButton;
   bannerEl.hidden = false;
 }
 function hideBanner() { bannerEl.hidden = true; }
@@ -263,18 +272,18 @@ async function runDraw(ev) {
 
   // 1) chi attacca: la selezione salta di copertina in copertina rallentando, e si ferma sul sorteggiato
   hudMain.textContent = '🎲 Chi attacca?';
-  const steps = Math.min(20, covers.length + 6);
+  const steps = Math.min(16, covers.length + 6);
   let prev = null;
   for (let i = 0; i < steps && !drawSkip; i++) {
     let el = atkEl;
     if (i < steps - 1) do { el = covers[Math.floor(Math.random() * covers.length)]; } while (el === prev && covers.length > 1);
     mark(el, 'pick'); prev = el;
-    await wait(55 + i * i * 1.2);
+    await wait(80 + i * i * 1.6);
   }
   mark(atkEl, 'pick');
   hudMain.textContent = `⚔ Attacca: ${games[ev.attacker].name}`;
   showBanner('⚔ ATTACCA', ev.attacker, 'atk');
-  await wait(1800);
+  await pause(3500);
   hideBanner();
 
   // 2) direzione: la bussola gira e si ferma sulla direzione sorteggiata
@@ -284,25 +293,28 @@ async function runDraw(ev) {
   for (let i = 0; i < k && !drawSkip; i++) {
     compassEl.querySelectorAll('.on').forEach(e => e.classList.remove('on'));
     compassEl.querySelector(`[data-d="${DIRS[(start + i) % 4]}"]`).classList.add('on');
-    await wait(70 + i * 22);
+    await wait(80 + i * 22);
   }
   compassEl.querySelectorAll('.on').forEach(e => e.classList.remove('on'));
   compassEl.querySelector(`[data-d="${ev.dir}"]`).classList.add('on');
   hudMain.textContent = `🧭 Direzione: ${DIR_NAME[ev.dir]}`;
-  await wait(800);
+  await wait(1600);
 
   // 3) freccia dal gioco che attacca a quello attaccato
   const a = coverCenter(ev.attacker), d = coverCenter(ev.defender);
-  if (a && d) { drawArrow(a, d); await wait(700); }
+  if (a && d) { drawArrow(a, d); await wait(1300); }
   mark(defEl, 'target');
   hudMain.textContent = `${games[ev.attacker].name} ➜ ${games[ev.defender].name}`;
-  showBanner('🎯 SFIDANTE', ev.defender, 'def');
-  await wait(1800);
+  // in modalità manuale la lotta parte solo quando premi «Inizia lotta» (tempo per commentare)
+  const hold = battleMode.value === 'manual';
+  showBanner('🎯 SFIDANTE', ev.defender, 'def', hold);
+  await pause(4000, hold);
   hideBanner();
   await wait(300);
 }
-$('hudSkip').onclick = () => { drawSkip = true; hideBanner(); };
-bannerEl.addEventListener('click', () => { drawSkip = true; hideBanner(); });   // un tocco sulla scritta salta l'animazione
+$('hudSkip').onclick = () => { drawSkip = true; hideBanner(); release(); };
+$('bannerGo').onclick = e => { e.stopPropagation(); release(); };
+bannerEl.addEventListener('click', () => release());   // un tocco sulla scritta passa al passo successivo
 
 // ---- una sfida completa: sorteggio, lotta, aggiornamento della mappa ----
 function refreshButtons(finished) {
@@ -382,7 +394,7 @@ allBtn.onclick = () => {
   paint(); finish();
 };
 // opzioni della barra (velocità, lotta, ecc.) ricordate tra una sessione e l'altra
-for (const id of ['speedSel', 'modeSel', 'realBattle', 'showBattles', 'drawAnim', 'battleMode', 'battleSpeed']) {
+for (const id of ['speedSel', 'modeSel', 'realBattle', 'showBattles', 'drawAnim', 'drawSpeed', 'battleMode', 'battleSpeed']) {
   const e = $(id), key = 'bgi.opt.' + id, box = e.type === 'checkbox';
   try {
     const v = localStorage.getItem(key);
@@ -467,7 +479,7 @@ window.Game = {
   },
   async leave() {
     stop();
-    runId++; drawSkip = true; busy = false;
+    runId++; drawSkip = true; busy = false; release();
     if (BattleUI.active) BattleUI.skip();
     clearDraw();
     await saveNow();

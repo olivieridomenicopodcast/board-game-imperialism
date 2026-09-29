@@ -124,3 +124,6 @@ button.danger,.dlg-btn.danger{border-color:#c0392b;color:#ff8a7a}
 .banner.atk .blabel{color:#ffe14d}.banner.def .blabel{color:#ff6b6b}
 .bname2{font-family:'Cinzel',serif;font-weight:800;color:var(--parch);line-height:1.05;margin:4px 0;font-size:clamp(1.8rem,8.5vw,3.8rem);overflow-wrap:anywhere}
 .btype{color:var(--muted);font-size:clamp(.9rem,3.4vw,1.3rem)}
+
+.bannergo{margin-top:10px;font-size:clamp(1rem,4.4vw,1.5rem);padding:10px 22px;background:#ff4d4d;color:#fff;border:3px solid #fff}
+.bannergo[hidden]{display:none}
