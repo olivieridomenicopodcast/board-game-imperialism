@@ -190,6 +190,7 @@ async function playBattleScreen(ev) {
 // ---- sorteggio animato: chi attacca -> direzione -> freccia sulla mappa ----
 const boardEl = $('board'), hudEl = $('hud'), hudMain = $('hudMain'), compassEl = $('compass'), arrowEl = $('arrow');
 const DIRS = ['N', 'E', 'S', 'O'];
+const bannerEl = $('banner');
 const wait = ms => new Promise(r => (drawSkip ? r() : setTimeout(r, ms / (+battleSpeed.value || 1))));
 const NS = 'http://www.w3.org/2000/svg';
 
@@ -229,7 +230,21 @@ function drawArrow(from, to) {
   return 600;
 }
 
+// Scritta grande a schermo: chi è stato sorteggiato (attaccante / sfidante)
+function showBanner(label, owner, kind) {
+  const g = games[owner], t = TYPES.find(x => x.id === STATS[g.id].t);
+  $('bannerImg').src = g.cover;
+  $('bannerLabel').textContent = label;
+  $('bannerName').textContent = g.name;
+  $('bannerType').textContent = `${t.icon} ${t.id}`;
+  bannerEl.className = 'banner ' + kind;
+  bannerEl.style.setProperty('--c', colors[owner]);
+  bannerEl.hidden = false;
+}
+function hideBanner() { bannerEl.hidden = true; }
+
 function clearDraw() {
+  hideBanner();
   hudEl.hidden = true;
   arrowEl.setAttribute('hidden', ''); arrowEl.textContent = '';
   coversEl.querySelectorAll('.pick, .target').forEach(e => e.classList.remove('pick', 'target'));
@@ -258,7 +273,9 @@ async function runDraw(ev) {
   }
   mark(atkEl, 'pick');
   hudMain.textContent = `⚔ Attacca: ${games[ev.attacker].name}`;
-  await wait(800);
+  showBanner('⚔ ATTACCA', ev.attacker, 'atk');
+  await wait(1800);
+  hideBanner();
 
   // 2) direzione: la bussola gira e si ferma sulla direzione sorteggiata
   hudMain.textContent = '🧭 In che direzione?';
@@ -279,9 +296,13 @@ async function runDraw(ev) {
   if (a && d) { drawArrow(a, d); await wait(700); }
   mark(defEl, 'target');
   hudMain.textContent = `${games[ev.attacker].name} ➜ ${games[ev.defender].name}`;
-  await wait(1100);
+  showBanner('🎯 SFIDANTE', ev.defender, 'def');
+  await wait(1800);
+  hideBanner();
+  await wait(300);
 }
-$('hudSkip').onclick = () => { drawSkip = true; };
+$('hudSkip').onclick = () => { drawSkip = true; hideBanner(); };
+bannerEl.addEventListener('click', () => { drawSkip = true; hideBanner(); });   // un tocco sulla scritta salta l'animazione
 
 // ---- una sfida completa: sorteggio, lotta, aggiornamento della mappa ----
 function refreshButtons(finished) {
@@ -300,7 +321,7 @@ async function fight() {
     if (my !== runId) return null;
     await playBattleScreen(ev);
     if (my !== runId) return null;
-  } finally { hudEl.hidden = true; }
+  } finally { hudEl.hidden = true; hideBanner(); }
   clearDraw();
   addLog(ev);
   busy = false;
