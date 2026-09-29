@@ -98,6 +98,7 @@
       (function frame(now) {
         const t = skipping ? 1 : Math.min(1, (now - t0) / dur);
         setBar(i, from + (to - from) * t);
+        if (window.Sfx && t < 1) Sfx.hp();
         if (t < 1) requestAnimationFrame(frame); else { setBar(i, to); res(); }
       })(t0);
     });
@@ -173,6 +174,7 @@
           const ev = page[k];
           if (ev.kind === 'use') lastMove = fighters[ev.side].moves.find(m => m.name === ev.move) || null;
           const fctx = { move: lastMove, fighters, next: page[k + 1] };
+          if (window.Sfx && !skipping) Sfx.event(ev, fctx);
           const jobs = [typeLine(ev.text, k === 0)];
           if (ev.hp) for (const i of [0, 1]) jobs.push(animateBar(i, ev.hp[i]));
           if (ev.cond) [0, 1].forEach(i => setCond(i, ev.cond[i]));

@@ -1,0 +1,10 @@
+Effetti sonori: il gioco li genera da solo. Per sostituirne uno con un tuo file, mettilo qui con questo nome
+(formato MP3, brevi, meglio sotto i 2 secondi). Se il file non c'è, si usa il suono generato.
+
+Interfaccia:   click  tick  compass  bannerAtk  bannerDef  arrow  conquer
+Lotta:         intro  hp  hit  hitSuper  hitWeak  crit  miss  fail  self  dot  cure  skip  ko  win  victory
+Condizioni:    st_paralisi  st_sonno  st_confusione  st_debito  st_sabotaggio
+Mosse:         neutral  statusUse
+Mosse di tipo: use_Strategia  use_Astratto  use_Gestionale  use_Economia  use_Guerra  use_Deduzione
+               use_Cooperativo  use_Ambientazione  use_Carte  use_Fortuna  use_Party  use_Bambini
+Esempio: audio/sfx/crit.mp3 sostituisce il suono del colpo critico.

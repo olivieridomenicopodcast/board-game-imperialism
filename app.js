@@ -291,11 +291,13 @@ async function runDraw(ev) {
     let el = atkEl;
     if (i < steps - 1) do { el = covers[Math.floor(Math.random() * covers.length)]; } while (el === prev && covers.length > 1);
     mark(el, 'pick'); prev = el;
+    if (!drawSkip) Sfx.play('tick');
     await wait(80 + i * i * 1.6);
   }
   mark(atkEl, 'pick');
   hudMain.textContent = `⚔ Attacca: ${games[ev.attacker].name}`;
   showBanner('⚔ ATTACCA', ev.attacker, 'atk');
+  Sfx.play('bannerAtk');
   await pause(3500);
   hideBanner();
 
@@ -306,6 +308,7 @@ async function runDraw(ev) {
   for (let i = 0; i < k && !drawSkip; i++) {
     compassEl.querySelectorAll('.on').forEach(e => e.classList.remove('on'));
     compassEl.querySelector(`[data-d="${DIRS[(start + i) % 4]}"]`).classList.add('on');
+    if (!drawSkip) Sfx.play('compass');
     await wait(80 + i * 22);
   }
   compassEl.querySelectorAll('.on').forEach(e => e.classList.remove('on'));
@@ -315,12 +318,13 @@ async function runDraw(ev) {
 
   // 3) freccia dal gioco che attacca a quello attaccato
   const a = coverCenter(ev.attacker), d = coverCenter(ev.defender);
-  if (a && d) { drawArrow(a, d); await wait(1300); }
+  if (a && d) { drawArrow(a, d); if (!drawSkip) Sfx.play('arrow'); await wait(1300); }
   mark(defEl, 'target');
   hudMain.textContent = `${games[ev.attacker].name} ➜ ${games[ev.defender].name}`;
   // in modalità manuale la lotta parte solo quando premi «Inizia lotta» (tempo per commentare)
   const hold = battleMode.value === 'manual';
   showBanner('🎯 SFIDANTE', ev.defender, 'def', hold);
+  Sfx.play('bannerDef');
   await pause(4000, hold);
   hideBanner();
   await wait(300);
@@ -351,7 +355,8 @@ async function fight() {
   addLog(ev);
   busy = false;
   paint(); showBattle();
-  if (state.alive === 1) finish(); else { readyMsg(); refreshButtons(); }
+  Sfx.play('conquer');
+  if (state.alive === 1) { finish(); setTimeout(() => Sfx.play('victory'), 500); } else { readyMsg(); refreshButtons(); }
   return ev;
 }
 
@@ -404,7 +409,7 @@ allBtn.onclick = () => {
   if (busy) return;
   stop();
   while (state.alive > 1) { const ev = doStep(); if (!ev) break; addLog(ev); }
-  paint(); finish();
+  paint(); finish(); Sfx.play('victory');
 };
 // opzioni della barra (velocità, lotta, ecc.) ricordate tra una sessione e l'altra
 for (const id of ['speedSel', 'modeSel', 'realBattle', 'showBattles', 'drawAnim', 'drawSpeed', 'fxAnim', 'battleMode', 'battleSpeed']) {

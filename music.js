@@ -66,7 +66,12 @@
     btn.onclick = () => { muted = !muted; put('musicMute', muted ? '1' : '0'); paint(); };
     vol.oninput = () => { volume = vol.value / 100; if (muted && volume > 0) { muted = false; put('musicMute', '0'); } put('musicVol', volume); paint(); };
     paint();
-    box.append(btn, vol);
+    const sb = document.createElement('button');
+    sb.type = 'button'; sb.className = 'iconbtn'; sb.title = 'Effetti sonori: attivi/muti';
+    const sp = () => { sb.textContent = Sfx.enabled ? '🔔' : '🔕'; };
+    sb.onclick = () => { Sfx.enabled = !Sfx.enabled; sp(); };
+    sp();
+    box.append(btn, vol, sb);
     document.body.appendChild(box);
   }
   if (document.body) ui(); else document.addEventListener('DOMContentLoaded', ui);
