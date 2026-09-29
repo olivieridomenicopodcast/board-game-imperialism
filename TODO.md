@@ -1,6 +1,6 @@
 # TODO
 
-- [ ] **Copertine da correggere (da PC)**: per 28 giochi il `bgg_id` del file sorgente era sbagliato e la copertina in `covers/` è ancora quella vecchia.
+- [ ] **Copertine da correggere (da PC)**: per 37 giochi il `bgg_id` del file sorgente era sbagliato e la copertina in `covers/` è ancora quella vecchia.
   Da un PC con accesso normale a BGG: `pip install pillow && python3 tools/fetch_covers.py`, poi commit di `covers/`.
   L'elenco dei giochi corretti è in `tools/id_report.json` e `data/id_fix*.json`.
 - [ ] Domino, Wolfsburg, Trivial Pursuit: `bgg_id` da trovare (ora usano stat stimate).
