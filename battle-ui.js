@@ -6,7 +6,8 @@
 //   battle = risultato di Battle.fight (events, winner)
 (function (root) {
   const COND_TAG = { paralisi: 'PAR', sonno: 'SON', confusione: 'CNF', debito: 'DEB', sabotaggio: 'SAB' };
-  let ui = null, skipping = false, speed = 1;
+  let ui = null, skipping = false, speed = 1, manual = true;
+  let mode = 'idle', fast = false, advance = null;   // mode: typing | waiting | idle
 
   const sleep = ms => new Promise(r => (skipping ? r() : setTimeout(r, ms / speed)));
 
@@ -46,7 +47,25 @@
     const skip = el('button', 'skipbtn', gb);
     skip.type = 'button'; skip.textContent = 'Salta ▶▶';
     skip.onclick = () => api.skip();
-    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !ui.root.classList.contains('hidden')) api.skip(); });
+    gb.addEventListener('click', e => { if (e.target !== skip) onInput(); });
+    document.addEventListener('keydown', e => {
+      if (ui.root.classList.contains('hidden')) return;
+      if (e.key === 'Escape') api.skip();
+      else if ([' ', 'Enter', 'ArrowRight'].includes(e.key)) { e.preventDefault(); onInput(); }
+    });
+  }
+
+  // clic / tasto: durante la scrittura completa il testo, a pagina finita passa alla successiva
+  function onInput() {
+    if (mode === 'typing') fast = true;
+    else if (mode === 'waiting' && advance) { const r = advance; advance = null; r(); }
+  }
+
+  function waitAdvance() {
+    if (skipping) return Promise.resolve();
+    mode = 'waiting';
+    ui.arrow.style.visibility = 'visible';
+    return new Promise(r => { advance = r; }).then(() => { mode = 'idle'; ui.arrow.style.visibility = 'hidden'; });
   }
 
   function barColor(p) { return p > 0.5 ? 'var(--hp-green)' : p > 0.2 ? 'var(--hp-orange)' : 'var(--hp-red)'; }
@@ -76,15 +95,29 @@
     });
   }
 
-  async function type(text) {
-    ui.text.textContent = '';
-    ui.arrow.style.visibility = 'hidden';
-    if (skipping) { ui.text.textContent = text; return; }
-    for (let k = 1; k <= text.length && !skipping; k++) {
-      ui.text.textContent = text.slice(0, k);
-      await sleep(22);
+  // scrive una riga in fondo alla pagina corrente (un clic durante la scrittura la completa subito)
+  async function typeLine(text, first) {
+    const prefix = first ? '' : ui.text.textContent + '\n';
+    if (first) ui.arrow.style.visibility = 'hidden';
+    fast = false; mode = 'typing';
+    if (!skipping) {
+      for (let k = 1; k <= text.length && !skipping && !fast; k++) {
+        ui.text.textContent = prefix + text.slice(0, k);
+        await sleep(22);
+      }
     }
-    ui.text.textContent = text;
+    ui.text.textContent = prefix + text;
+    mode = 'idle';
+  }
+
+  // raggruppa gli eventi: una azione (usa -> esito -> note) = una pagina
+  function pages(events) {
+    const out = [];
+    for (const ev of events) {
+      const follow = ['miss', 'fail', 'status', 'hit', 'note'].includes(ev.kind);
+      if (follow && out.length) out[out.length - 1].push(ev); else out.push([ev]);
+    }
+    return out;
   }
 
   function setCond(i, kind) {
@@ -108,22 +141,27 @@
   }
 
   const api = {
-    async play({ a, b, battle, speed: sp = 1 }) {
+    async play({ a, b, battle, speed: sp = 1, manual: man = true }) {
       if (!ui) build();
-      skipping = false; speed = sp;
+      skipping = false; speed = sp; manual = man; mode = 'idle';
       fill(0, a.fighter, a.color, a.cover);
       fill(1, b.fighter, b.color, b.cover);
       ui.text.textContent = '';
       ui.root.classList.remove('hidden');
       await sleep(400);
-      for (const ev of battle.events) {
+      for (const page of pages(battle.events)) {
         if (skipping) break;
-        const jobs = [type(ev.text)];
-        if (ev.hp) for (const i of [0, 1]) jobs.push(animateBar(i, ev.hp[i]));
-        if (ev.cond) [0, 1].forEach(i => setCond(i, ev.cond[i]));
-        await Promise.all(jobs);
-        ui.arrow.style.visibility = 'visible';
-        await sleep(ev.kind === 'note' ? 450 : ev.kind === 'end' ? 1400 : 650);
+        for (let k = 0; k < page.length && !skipping; k++) {
+          const ev = page[k];
+          const jobs = [typeLine(ev.text, k === 0)];
+          if (ev.hp) for (const i of [0, 1]) jobs.push(animateBar(i, ev.hp[i]));
+          if (ev.cond) [0, 1].forEach(i => setCond(i, ev.cond[i]));
+          await Promise.all(jobs);
+          if (k < page.length - 1) await sleep(fast ? 120 : 450);
+        }
+        const kind = page[page.length - 1].kind;
+        if (manual) await waitAdvance();
+        else { ui.arrow.style.visibility = 'visible'; await sleep(kind === 'end' ? 1400 : 900); }
       }
       // stato finale (anche dopo "Salta")
       const last = battle.events[battle.events.length - 1];
@@ -132,7 +170,7 @@
       if (skipping) { ui.text.textContent = last.text; await new Promise(r => setTimeout(r, 350)); }
       ui.root.classList.add('hidden');
     },
-    skip() { skipping = true; },
+    skip() { skipping = true; onInput(); },
     get active() { return !!ui && !ui.root.classList.contains('hidden'); },
   };
   root.BattleUI = api;

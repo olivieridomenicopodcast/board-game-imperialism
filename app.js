@@ -9,7 +9,7 @@ const LOG_MAX = 300;
 
 const $ = id => document.getElementById(id);
 const gridEl = $('grid'), coversEl = $('covers'), infoEl = $('info'), statsEl = $('stats'), logEl = $('log');
-const playBtn = $('playBtn'), stepBtn = $('stepBtn'), allBtn = $('allBtn'), speedSel = $('speedSel'), modeSel = $('modeSel'), realBattle = $('realBattle'), showBattles = $('showBattles'), battleSpeed = $('battleSpeed'), battleLogEl = $('battleLog');
+const playBtn = $('playBtn'), stepBtn = $('stepBtn'), allBtn = $('allBtn'), speedSel = $('speedSel'), modeSel = $('modeSel'), realBattle = $('realBattle'), showBattles = $('showBattles'), battleSpeed = $('battleSpeed'), battleMode = $('battleMode'), battleLogEl = $('battleLog');
 
 let games = [], colors = [], state = null, cellEls = [], timer = null, selected = null;
 
@@ -155,7 +155,7 @@ function doStep() {
 async function playBattleScreen(ev) {
   if (!lastBattle || !showBattles.checked) return;
   const side = i => ({ fighter: fighter(i), color: colors[i], cover: games[i].cover });
-  await BattleUI.play({ a: side(ev.attacker), b: side(ev.defender), battle: lastBattle, speed: +battleSpeed.value });
+  await BattleUI.play({ a: side(ev.attacker), b: side(ev.defender), battle: lastBattle, speed: +battleSpeed.value, manual: battleMode.value === 'manual' });
 }
 
 function finish() {
@@ -207,5 +207,7 @@ allBtn.onclick = () => {
   while (state.alive > 1 && doStep()) { /* esegue tutti gli scontri senza schermata */ }
   paint(); finish();
 };
+try { battleMode.value = localStorage.getItem('bgi.battleMode') || 'manual'; } catch (e) { /* localStorage non disponibile */ }
+battleMode.onchange = () => { try { localStorage.setItem('bgi.battleMode', battleMode.value); } catch (e) { /* ok */ } };
 $('shuffleBtn').onclick = newRun;
 newRun();
