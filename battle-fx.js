@@ -287,7 +287,7 @@
     async function cure(ev) {
       const at = pos(ev.side);
       await Promise.all([burst('✨', at, { count: 7, radius: 0.13 }), spr(ev.side, [{ filter: 'brightness(1.6)' }, { filter: 'none' }], 500),
-                         popup('guarito!', at, { size: 0.45, color: '#38c030', lift: at.h * 0.4 })]);
+                         popup(ev.kind === 'wake' ? 'sveglio!' : 'guarito!', at, { size: 0.45, color: '#38c030', lift: at.h * 0.4 })]);
     }
 
     // entrata in scena: gli sprite arrivano dai lati e compare "VS"
@@ -327,7 +327,7 @@
           case 'skip': return skip(ev);
           case 'self': return selfHit(ev);
           case 'dot': return dot(ev);
-          case 'cure': return cure(ev);
+          case 'cure': case 'wake': return cure(ev);
           case 'end': return ko(ev);
           default: return undefined;
         }

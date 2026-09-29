@@ -91,14 +91,19 @@
     function endCond(s, i) {
       if (!s.cond || S[0].hp <= 0 || S[1].hp <= 0) return;
       if (--s.cond.left > 0) return;
-      const kind = s.cond.kind;
-      push(i, kind === 'sonno' ? `${s.f.name} si sveglia!` : `${s.f.name} non è più in ${root.STATUSES[kind].label}.`, { kind: 'cure' });
+      if (s.cond.kind === 'sonno') return;   // il sonno finisce all'inizio del turno successivo (si sveglia e agisce)
+      push(i, `${s.f.name} non è più in ${root.STATUSES[s.cond.kind].label}.`, { kind: 'cure' });
       s.cond = null;
     }
 
     function act(i) {
-      const me = S[i], foe = S[1 - i], c = me.cond;
+      const me = S[i], foe = S[1 - i];
       let lost = false;
+      if (me.cond && me.cond.kind === 'sonno' && me.cond.left <= 0) {   // ha dormito tutti i turni previsti
+        me.cond = null;
+        push(i, `${me.f.name} si sveglia!`, { kind: 'wake' });
+      }
+      const c = me.cond;
       if (c) {
         // ultima possibilità: se paralisi/confusione non hanno ancora avuto alcun effetto, scatta al turno finale
         const forced = c.left <= 1 && !c.hit;

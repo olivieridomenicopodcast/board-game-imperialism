@@ -121,7 +121,10 @@
   function pages(events) {
     const out = [];
     for (const ev of events) {
-      const follow = ['miss', 'fail', 'status', 'hit', 'note', 'cure'].includes(ev.kind);
+      const prev = out.length ? out[out.length - 1][out[out.length - 1].length - 1] : null;
+      // la mossa di chi si è appena svegliato sta nella stessa pagina di "si sveglia!"
+      const follow = ['miss', 'fail', 'status', 'hit', 'note', 'cure'].includes(ev.kind)
+        || (ev.kind === 'use' && prev && prev.kind === 'wake' && prev.side === ev.side);
       if (follow && out.length) out[out.length - 1].push(ev); else out.push([ev]);
     }
     return out;
