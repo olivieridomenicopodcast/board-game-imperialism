@@ -1,0 +1,46 @@
+{
+ "set": {
+  "7": "Gestionale",
+  "19": "Gestionale",
+  "201": "Gestionale",
+  "231": "Cooperativo",
+  "232": "Cooperativo",
+  "233": "Cooperativo",
+  "259": "Cooperativo",
+  "260": "Cooperativo",
+  "256": "Guerra",
+  "289": "Guerra"
+ },
+ "not": {
+  "2": [
+   "Carte"
+  ],
+  "16": [
+   "Carte"
+  ],
+  "70": [
+   "Carte"
+  ],
+  "71": [
+   "Carte"
+  ],
+  "84": [
+   "Carte"
+  ],
+  "187": [
+   "Carte"
+  ],
+  "192": [
+   "Carte"
+  ],
+  "197": [
+   "Carte"
+  ],
+  "206": [
+   "Carte"
+  ],
+  "374": [
+   "Carte"
+  ]
+ }
+}

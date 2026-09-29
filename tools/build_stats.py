@@ -2,7 +2,7 @@
 """Assegna tipo e stat a ogni gioco a partire da data/bgg.json.
 
 Uso: python3 tools/build_stats.py
-Legge:   data/bgg.json, data/games.json, data/type_overrides.json (correzioni a mano: {"numero": "Tipo"})
+Legge:   data/bgg.json, data/games.json, data/type_overrides.json (correzioni a mano: "set" forza un tipo, "not" ne esclude alcuni)
 Scrive:  data/stats.js (window.STATS, indicizzato per id come games.json)
 """
 import collections, json, math, os, statistics
@@ -11,7 +11,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 games = json.load(open(os.path.join(ROOT, "data", "games.json"), encoding="utf-8"))
 bgg = json.load(open(os.path.join(ROOT, "data", "bgg.json"), encoding="utf-8"))
 ovr_path = os.path.join(ROOT, "data", "type_overrides.json")
-overrides = json.load(open(ovr_path, encoding="utf-8")) if os.path.exists(ovr_path) else {}
+_ovr = json.load(open(ovr_path, encoding="utf-8")) if os.path.exists(ovr_path) else {}
+overrides = _ovr.get("set", {})       # {"numero": "Tipo"}: tipo forzato
+excludes = _ovr.get("not", {})        # {"numero": ["Tipo", ...]}: tipi esclusi, sceglie il migliore tra gli altri
 
 # In caso di parità vince il tipo più a sinistra (i più rari/specifici prima).
 TYPES = ["Bambini", "Deduzione", "Cooperativo", "Party", "Astratto", "Guerra", "Economia",
@@ -78,14 +80,15 @@ def scores(b):
     return s
 
 
-def pick(s):
+def pick(s, banned=()):
+    s = {t: v for t, v in s.items() if t not in banned}
     best = max(s.values())
-    return next(t for t in TYPES if s[t] == best)
+    return next(t for t in TYPES if t in s and s[t] == best)
 
 
 assigned = {}
 for g in games:
-    assigned[g["id"]] = overrides.get(str(g["n"])) or pick(scores(bgg[g["id"]]))
+    assigned[g["id"]] = overrides.get(str(g["n"])) or pick(scores(bgg[g["id"]]), excludes.get(str(g["n"]), ()))
 
 # peso mancante: media del tipo assegnato (poi globale)
 by_type = collections.defaultdict(list)
