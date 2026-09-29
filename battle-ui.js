@@ -1,7 +1,7 @@
 'use strict';
-// Schermata di lotta stile Game Boy/Pokémon. Nessuna animazione tranne la barra HP che scende
-// gradualmente (verde > 50%, arancione 20-50%, rossa < 20%) e il testo che avanza.
-// API: BattleUI.play({ a, b, battle, speed }) -> Promise;  BattleUI.skip()
+// Schermata di lotta stile Game Boy/Pokémon: barra HP che scende gradualmente (verde > 50%, arancione 20-50%,
+// rossa < 20%), testo che avanza ed effetti delle mosse (battle-fx.js).
+// API: BattleUI.play({ a, b, battle, speed, manual, stop, fx }) -> Promise;  BattleUI.skip()
 //   a, b   = { fighter, color, cover }   (a = attaccante, in basso a sinistra; b = difensore, in alto a destra)
 //   battle = risultato di Battle.fight (events, winner)
 (function (root) {
@@ -28,6 +28,7 @@
       const plat = el('div', 'plat', sp);
       const img = el('img', '', sp);
       img.alt = '';
+      const condfx = el('span', 'condfx', sp);
       const box = el('div', 'box b' + i, gb);
       const top = el('div', 'bname', box);
       const nm = el('span', 'nm', top);
@@ -39,8 +40,10 @@
       const track = el('div', 'track', hpw);
       const fill = el('div', 'fill', track);
       const num = el('div', 'hpnum', box);
-      ui.side[i] = { sp, plat, img, box, nm, ty, tag, fill, num, max: 1, cur: 1 };
+      ui.side[i] = { sp, plat, img, condfx, box, nm, ty, tag, fill, num, max: 1, cur: 1 };
     }
+    ui.fx = el('div', 'fx', gb);
+    ui.fxApi = root.BattleFX.create({ gb, layer: ui.fx, sprites: [ui.side[0].img, ui.side[1].img], speed: () => speed, skipping: () => skipping });
     const tb = el('div', 'textbox', gb);
     ui.text = el('p', '', tb);
     ui.arrow = el('span', 'arrow', tb);
@@ -128,6 +131,7 @@
     const t = ui.side[i].tag;
     t.textContent = kind ? COND_TAG[kind] : '';
     t.className = 'tag' + (kind ? ' on c-' + kind : '');
+    ui.side[i].condfx.textContent = kind ? root.BATTLE_COND_ICON[kind] : '';
   }
 
   function fill(i, f, color, cover) {
@@ -138,6 +142,7 @@
     s.max = f.maxHp;
     s.img.src = cover;
     s.img.style.opacity = '1';
+    s.img.getAnimations().forEach(x => x.cancel());
     s.plat.style.background = color;
     s.sp.style.setProperty('--c', color);
     setBar(i, f.maxHp);
@@ -145,7 +150,7 @@
   }
 
   const api = {
-    async play({ a, b, battle, speed: sp = 1, manual: man = true, stop = null }) {
+    async play({ a, b, battle, speed: sp = 1, manual: man = true, stop = null, fx = true }) {
       if (!ui) build();
       ui.onStop = stop; ui.stopBtn.hidden = !stop;
       skipping = false; speed = sp; manual = man; mode = 'idle';
@@ -153,15 +158,22 @@
       fill(1, b.fighter, b.color, b.cover);
       ui.text.textContent = '';
       ui.root.classList.remove('hidden');
-      await sleep(400);
+      ui.fxApi.reset();
+      const useFx = fx, fighters = [a.fighter, b.fighter];
+      let lastMove = null;
+      await Promise.all([sleep(400), useFx ? ui.fxApi.intro() : null]);
       for (const page of pages(battle.events)) {
         if (skipping) break;
         for (let k = 0; k < page.length && !skipping; k++) {
           const ev = page[k];
+          if (ev.kind === 'use') lastMove = fighters[ev.side].moves.find(m => m.name === ev.move) || null;
+          const fctx = { move: lastMove, fighters, next: page[k + 1] };
           const jobs = [typeLine(ev.text, k === 0)];
           if (ev.hp) for (const i of [0, 1]) jobs.push(animateBar(i, ev.hp[i]));
           if (ev.cond) [0, 1].forEach(i => setCond(i, ev.cond[i]));
+          if (useFx && ev.kind !== 'use' && ev.kind !== 'intro') jobs.push(ui.fxApi.event(ev, fctx));
           await Promise.all(jobs);
+          if (useFx && ev.kind === 'use') await ui.fxApi.event(ev, fctx);
           if (k < page.length - 1) await sleep(fast ? 120 : 450);
         }
         const kind = page[page.length - 1].kind;
@@ -175,7 +187,7 @@
       if (skipping) { ui.text.textContent = last.text; await new Promise(r => setTimeout(r, 350)); }
       ui.root.classList.add('hidden');
     },
-    skip() { skipping = true; onInput(); },
+    skip() { skipping = true; onInput(); if (ui) ui.fxApi.stop(); },
     get active() { return !!ui && !ui.root.classList.contains('hidden'); },
   };
   root.BattleUI = api;

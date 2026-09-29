@@ -11,7 +11,7 @@ const GAME_BY_ID = Object.fromEntries(window.GAMES.map(g => [g.id, g]));
 
 const $ = id => document.getElementById(id);
 const gridEl = $('grid'), coversEl = $('covers'), infoEl = $('info'), statsEl = $('stats'), logEl = $('log');
-const playBtn = $('playBtn'), stepBtn = $('stepBtn'), allBtn = $('allBtn'), speedSel = $('speedSel'), modeSel = $('modeSel'), realBattle = $('realBattle'), showBattles = $('showBattles'), drawAnim = $('drawAnim'), battleSpeed = $('battleSpeed'), battleMode = $('battleMode'), battleLogEl = $('battleLog');
+const playBtn = $('playBtn'), stepBtn = $('stepBtn'), allBtn = $('allBtn'), speedSel = $('speedSel'), modeSel = $('modeSel'), realBattle = $('realBattle'), showBattles = $('showBattles'), drawAnim = $('drawAnim'), fxAnim = $('fxAnim'), battleSpeed = $('battleSpeed'), battleMode = $('battleMode'), battleLogEl = $('battleLog');
 const menuEl = $('menu'), gameViewEl = $('gameView'), nameBtn = $('nameBtn'), saveStateEl = $('saveState');
 
 let games = [], colors = [], state = null, cellEls = [], timer = null, selected = null;
@@ -184,7 +184,7 @@ async function playBattleScreen(ev) {
   if (!lastBattle || !showBattles.checked) return;
   const side = i => ({ fighter: fighter(i), color: colors[i], cover: games[i].cover });
   await BattleUI.play({ a: side(ev.attacker), b: side(ev.defender), battle: lastBattle, speed: +battleSpeed.value,
-                        manual: battleMode.value === 'manual', stop: running ? () => stop() : null });
+                        manual: battleMode.value === 'manual', stop: running ? () => stop() : null, fx: fxAnim.checked });
 }
 
 // ---- sorteggio animato: chi attacca -> direzione -> freccia sulla mappa ----
@@ -394,7 +394,7 @@ allBtn.onclick = () => {
   paint(); finish();
 };
 // opzioni della barra (velocità, lotta, ecc.) ricordate tra una sessione e l'altra
-for (const id of ['speedSel', 'modeSel', 'realBattle', 'showBattles', 'drawAnim', 'drawSpeed', 'battleMode', 'battleSpeed']) {
+for (const id of ['speedSel', 'modeSel', 'realBattle', 'showBattles', 'drawAnim', 'drawSpeed', 'fxAnim', 'battleMode', 'battleSpeed']) {
   const e = $(id), key = 'bgi.opt.' + id, box = e.type === 'checkbox';
   try {
     const v = localStorage.getItem(key);
