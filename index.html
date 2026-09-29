@@ -15,13 +15,21 @@
 </header>
 <main>
   <section class="toolbar">
-    <button id="shuffleBtn" type="button">🎲 Rimescola mappa</button>
-    <span id="stats" class="stats"></span>
+    <button id="playBtn" type="button">▶ Avvia</button>
+    <button id="stepBtn" type="button">⏭ Turno</button>
+    <button id="allBtn" type="button">⏩ Simula tutto</button>
+    <label class="speed">Velocità
+      <select id="speedSel"><option value="700">1×</option><option value="250" selected>3×</option><option value="60">10×</option><option value="10">Max</option></select>
+    </label>
+    <button id="shuffleBtn" type="button" class="ghost">🎲 Rimescola mappa</button>
   </section>
-  <div id="board" class="board" role="grid" aria-label="Mappa 15 per 15"></div>
+  <div id="stats" class="stats"></div>
+  <div id="board" class="board"><div id="grid" class="grid" role="grid" aria-label="Mappa 15 per 15"></div><div id="covers" class="covers"></div></div>
   <aside id="info" class="info">Tocca una casella per vedere il gioco.</aside>
+  <section class="logwrap"><h2>Cronologia</h2><ol id="log" class="log"></ol></section>
 </main>
 <script src="data/games.js"></script>
+<script src="engine.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
