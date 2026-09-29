@@ -52,7 +52,7 @@
     function redraw() {
       box.textContent = '';
       const s = root.STATS[gameId], t = TYPE(s.t), b = (root.BGG || {})[gameId];
-      const fighter = Battle.makeFighter(game, s);
+      const fighter = Battle.makeFighter(game, s, ctx && ctx.prestige || 0);
 
       const head = h('div', 'chead', box);
       const img = h('img', '', head); img.src = game.cover; img.alt = '';
@@ -69,6 +69,7 @@
         const sc = section(box, 'In campagna');
         const dot = h('span', 'dot', sc); dot.style.background = ctx.color;
         sc.append(` territorio: ${ctx.territory} ${ctx.territory === 1 ? 'casella' : 'caselle'} · scontri vinti: ${ctx.wins}`);
+        if (ctx.prestige > 0.0005) h('div', 'dim', sc, `⭐ Prestigio +${Math.round(ctx.prestige * 100)}% ad Attacco e Difesa (ha assorbito ${ctx.territory - 1} giochi; massimo +${Math.round(Engine.PRESTIGE_MAX * 100)}%). Le barre mostrano già il bonus.`);
       }
 
       if (fighter.balance) {

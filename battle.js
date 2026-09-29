@@ -13,7 +13,7 @@
   }
 
   // game: {id, name}; stat: {t, hp, atk, def, spd, mt}
-  function makeFighter(game, stat) {
+  function makeFighter(game, stat, prestige = 0) {
     const tier = stat.mt !== undefined ? stat.mt : hash(game.id + '|t') % 3;
     const typeMove = { ...root.TYPE_MOVES[stat.t][tier], kind: 'type' };
     const neutral = { ...root.NEUTRAL_MOVES[hash(game.id + '|n') % root.NEUTRAL_MOVES.length], kind: 'neutral' };
@@ -24,9 +24,9 @@
     // chi ha solo la mossa del proprio tipo più debole (potenza 55) riceve anche quella più forte del tipo
     if (tier === 0) moves.push({ ...root.TYPE_MOVES[stat.t][2], kind: 'type' });
     // piccolo bonus di bilanciamento (data/balance.js, generato da tools/balance.js) per chi resterebbe troppo in basso
-    const m = 1 + ((root.BALANCE && root.BALANCE[game.id]) || 0);
+    const m = (1 + ((root.BALANCE && root.BALANCE[game.id]) || 0)) * (1 + prestige);   // bilanciamento x prestigio (campagna)
     return { id: game.id, name: game.name, type: stat.t, maxHp: stat.hp, atk: Math.round(stat.atk * m), def: Math.round(stat.def * m),
-             spd: stat.spd, moves, balance: (root.BALANCE && root.BALANCE[game.id]) || 0 };
+             spd: stat.spd, moves, balance: (root.BALANCE && root.BALANCE[game.id]) || 0, prestige };
   }
 
   const atkOf = s => s.f.atk * (s.cond && s.cond.kind === 'sabotaggio' ? SABOTAGE_MULT : 1);

@@ -74,7 +74,6 @@ function load(c) {
   colors = c.colors;
   state = { owner: c.owner.slice(), alive: new Set(c.owner).size, turn: c.turn, wins: c.wins.slice() };
   selected = null;
-  fighters.clear();
   lastBattle = null;
   battleLogEl.textContent = '';
   logEl.textContent = '';
@@ -126,6 +125,11 @@ function paint() {
   statsEl.textContent = `Giochi in vita: ${state.alive} / ${games.length} · Scontri: ${state.turn}`;
 }
 
+function prestigeText(o) {
+  const p = Engine.prestige(state, o);
+  return p > 0.0005 ? ` — ⭐ prestigio +${Math.round(p * 100)}%` : '';
+}
+
 function select(o) {
   if (busy) return;   // durante il sorteggio/la lotta la mappa non è selezionabile
   selected = o;
@@ -134,10 +138,10 @@ function select(o) {
   const g = games[o];
   infoEl.textContent = '';
   const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = colors[o];
-  infoEl.append(dot, `#${g.n} ${g.name} — ${STATS[g.id].t} — territorio: ${size} caselle — scontri vinti: ${state.wins[o]} `);
+  infoEl.append(dot, `#${g.n} ${g.name} — ${STATS[g.id].t} — territorio: ${size} caselle — scontri vinti: ${state.wins[o]}${prestigeText(o)} `);
   const cardBtn = document.createElement('button');
   cardBtn.type = 'button'; cardBtn.className = 'small'; cardBtn.textContent = '🃏 Scheda';
-  cardBtn.onclick = () => Card.show(g.id, { territory: size, wins: state.wins[o], color: colors[o] });
+  cardBtn.onclick = () => Card.show(g.id, { territory: size, wins: state.wins[o], color: colors[o], prestige: Engine.prestige(state, o) });
   infoEl.appendChild(cardBtn);
   paint();
 }
@@ -151,15 +155,17 @@ function addLog(ev) {
   while (logEl.children.length > LOG_MAX) logEl.lastChild.remove();
 }
 
-const fighters = new Map();
-function fighter(i) {
-  if (!fighters.has(i)) fighters.set(i, Battle.makeFighter(games[i], STATS[games[i].id]));
-  return fighters.get(i);
-}
+let lastBattle = null, lastFighters = {}, lastPrestige = {};
 
-let lastBattle = null;
+// Risolve lo scontro. Il prestigio (bonus per i giochi assorbiti) si calcola PRIMA che le caselle passino al vincitore.
 function resolve(attacker, defender) {
-  lastBattle = Battle.fight(fighter(attacker), fighter(defender));
+  const pa = Engine.prestige(state, attacker), pd = Engine.prestige(state, defender);
+  lastPrestige = { [attacker]: pa, [defender]: pd };
+  if (!realBattle.checked) return Engine.coinFlip(attacker, defender);
+  const fa = Battle.makeFighter(games[attacker], STATS[games[attacker].id], pa);
+  const fd = Battle.makeFighter(games[defender], STATS[games[defender].id], pd);
+  lastFighters = { [attacker]: fa, [defender]: fd };
+  lastBattle = Battle.fight(fa, fd);
   return lastBattle.winner === 0 ? attacker : defender;
 }
 
@@ -176,7 +182,8 @@ function showBattle() {
 // Risolve lo scontro nel motore (lo stato cambia subito, la mappa si ridisegna a fine sfida).
 function doStep() {
   lastBattle = null;
-  const ev = Engine.step(state, realBattle.checked ? resolve : undefined, modeSel.value);
+  lastFighters = {}; lastPrestige = {};
+  const ev = Engine.step(state, resolve, modeSel.value);
   if (!ev) return null;
   ev.rounds = lastBattle && lastBattle.rounds;
   cur.log.push({ turn: ev.turn, attacker: ev.attacker, defender: ev.defender, dir: ev.dir, winner: ev.winner, gained: ev.gained, rounds: ev.rounds || 0 });
@@ -187,7 +194,7 @@ function doStep() {
 // mostra la schermata di lotta per lo scontro appena risolto (attaccante in basso a sinistra)
 async function playBattleScreen(ev) {
   if (!lastBattle || !showBattles.checked) return;
-  const side = i => ({ fighter: fighter(i), color: colors[i], cover: games[i].cover });
+  const side = i => ({ fighter: lastFighters[i], color: colors[i], cover: games[i].cover });
   await BattleUI.play({ a: side(ev.attacker), b: side(ev.defender), battle: lastBattle, speed: +battleSpeed.value,
                         manual: battleMode.value === 'manual', stop: running ? () => stop() : null, fx: fxAnim.checked });
 }
@@ -249,7 +256,8 @@ function showBanner(label, owner, kind, withButton) {
   $('bannerImg').src = g.cover;
   $('bannerLabel').textContent = label;
   $('bannerName').textContent = g.name;
-  $('bannerType').textContent = `${t.icon} ${t.id}`;
+  const pr = lastPrestige[owner];
+  $('bannerType').textContent = `${t.icon} ${t.id}` + (pr > 0.0005 ? `  ·  ⭐ Prestigio +${Math.round(pr * 100)}%` : '');
   bannerEl.className = 'banner ' + kind;
   bannerEl.style.setProperty('--c', colors[owner]);
   $('bannerGo').hidden = !withButton;
@@ -408,8 +416,6 @@ for (const id of ['speedSel', 'modeSel', 'realBattle', 'showBattles', 'drawAnim'
   e.addEventListener('change', () => { try { localStorage.setItem(key, box ? (e.checked ? '1' : '0') : e.value); } catch (err) { /* ok */ } });
 }
 
-// se cambia il tipo di un gioco (dalla scheda) mosse e vantaggi cambiano: si ricreano i combattenti
-window.addEventListener('typechange', () => { fighters.clear(); });
 
 // ---- salvataggio ----
 let saveTimer = null;

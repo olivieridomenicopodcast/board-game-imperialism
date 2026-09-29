@@ -18,6 +18,21 @@
   }
 
   // Esito provvisorio: 50/50. Verrà sostituito dal sistema di lotta (passo 6).
+  // Prestigio: bonus ad Attacco e Difesa di chi ha assorbito altri giochi. Ogni gioco parte con 1 casella e chi
+  // vince prende tutte le caselle dello sconfitto, quindi (caselle - 1) = giochi assorbiti (anche a cascata).
+  // Cresce in modo lineare con la quota di giochi assorbiti e arriva al massimo con il 20% degli altri giochi.
+  const PRESTIGE_MAX = 0.15, PRESTIGE_FULL = 0.20;
+  function territory(state, owner) {
+    let n = 0;
+    for (const o of state.owner) if (o === owner) n++;
+    return n;
+  }
+  function prestige(state, owner) {
+    const total = state.owner.length;
+    if (total < 2) return 0;
+    return PRESTIGE_MAX * Math.min(1, ((territory(state, owner) - 1) / (total - 1)) / PRESTIGE_FULL);
+  }
+
   function coinFlip(a, d) { return Math.random() < 0.5 ? a : d; }
 
   // Tutte le coppie (casella, direzione) che portano a un territorio di un altro proprietario.
@@ -96,7 +111,7 @@
     return res;
   }
 
-  const api = { DEFAULT_SIZE, sizeOf, MAX_COVER, create, step, borders, placements, coinFlip };
+  const api = { DEFAULT_SIZE, sizeOf, PRESTIGE_MAX, PRESTIGE_FULL, prestige, territory, MAX_COVER, create, step, borders, placements, coinFlip };
   root.Engine = api;
   if (typeof module !== 'undefined') module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

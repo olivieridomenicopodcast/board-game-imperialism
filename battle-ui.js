@@ -40,7 +40,8 @@
       const track = el('div', 'track', hpw);
       const fill = el('div', 'fill', track);
       const num = el('div', 'hpnum', box);
-      ui.side[i] = { sp, plat, img, condfx, box, nm, ty, tag, fill, num, max: 1, cur: 1 };
+      const prest = el('div', 'prest', box);
+      ui.side[i] = { sp, plat, img, condfx, box, nm, ty, tag, fill, num, prest, max: 1, cur: 1 };
     }
     ui.fx = el('div', 'fx', gb);
     ui.fxApi = root.BattleFX.create({ gb, layer: ui.fx, sprites: [ui.side[0].img, ui.side[1].img], speed: () => speed, skipping: () => skipping });
@@ -143,6 +144,7 @@
     s.ty.textContent = `${t.icon} ${f.type}`;
     s.ty.style.background = t.color;
     s.max = f.maxHp;
+    s.prest.textContent = f.prestige > 0.0005 ? `⭐ Prestigio +${Math.round(f.prestige * 100)}%` : '';
     s.img.src = cover;
     s.img.style.opacity = '1';
     s.img.getAnimations().forEach(x => x.cancel());
