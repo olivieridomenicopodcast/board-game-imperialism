@@ -24,15 +24,21 @@
     <label class="speed">Sorteggio
       <select id="modeSel"><option value="game" selected>Per gioco</option><option value="edge">Per confine</option></select>
     </label>
+    <label class="speed"><input id="realBattle" type="checkbox" checked> Lotta vera</label>
     <button id="shuffleBtn" type="button" class="ghost">🎲 Rimescola mappa</button>
   </section>
   <div id="stats" class="stats"></div>
   <div id="board" class="board"><div id="grid" class="grid" role="grid" aria-label="Mappa 15 per 15"></div><div id="covers" class="covers"></div></div>
   <aside id="info" class="info">Tocca una casella per vedere il gioco.</aside>
+  <section class="logwrap"><h2>Ultimo scontro</h2><ol id="battleLog" class="log battle"></ol></section>
   <section class="logwrap"><h2>Cronologia</h2><ol id="log" class="log"></ol></section>
 </main>
 <script src="data/games.js"></script>
 <script src="data/intoccabili.js"></script>
+<script src="data/stats.js"></script>
+<script src="data/types.js"></script>
+<script src="data/moves.js"></script>
+<script src="battle.js"></script>
 <script src="engine.js"></script>
 <script src="app.js"></script>
 </body>

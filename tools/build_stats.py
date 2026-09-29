@@ -5,7 +5,7 @@ Uso: python3 tools/build_stats.py
 Legge:   data/bgg.json, data/games.json, data/type_overrides.json (correzioni a mano: "set" forza un tipo, "not" ne esclude alcuni)
 Scrive:  data/stats.js (window.STATS, indicizzato per id come games.json)
 """
-import collections, json, math, os, statistics
+import collections, json, math, os, statistics, zlib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 games = json.load(open(os.path.join(ROOT, "data", "games.json"), encoding="utf-8"))
@@ -122,10 +122,12 @@ for g in games:
     m = b["maxPlayers"] or 4
     stats[g["id"]] = {
         "t": t,
-        "hp": round(90 + 10 * clamp(m, 2, 8)),
-        "atk": round(clamp(50 + 15 * (w - 1), 50, 110)),
-        "def": round(clamp(50 + (r - 5.0) / 3.5 * 55, 45, 115)),
-        "spd": round(clamp(110 - 22 * math.log2(max(p, 10) / 15), 30, 110)),
+        "hp": round(110 + 6 * clamp(m, 2, 8)),
+        "atk": round(clamp(60 + 10 * (w - 1), 60, 100)),
+        "def": round(clamp(60 + (r - 5.0) / 3.5 * 40, 55, 105)),
+        # tier della mossa di tipo (0 debole, 1 media, 2 forte): metà qualità (rating), metà caso fisso per gioco
+        "mt": (lambda q: 0 if q < 0.40 else 1 if q < 0.65 else 2)(0.5 * clamp((r - 5.0) / 3.5, 0, 1) + 0.5 * (zlib.crc32(g["id"].encode()) / 2**32)),
+        "spd": round(clamp(100 - 15 * math.log2(max(p, 10) / 15), 40, 100)),
         **({"est": est} if est else {}),
     }
 

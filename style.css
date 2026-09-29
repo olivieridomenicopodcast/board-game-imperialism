@@ -41,3 +41,5 @@ button:disabled{opacity:.45;cursor:default}
   min-height:3em;font-weight:600}
 .info .dot{display:inline-block;width:1em;height:1em;border-radius:50%;vertical-align:-.15em;margin-right:6px;border:1px solid #0006}
 @media(max-width:600px){main{padding:8px}.board{gap:1px}}
+
+.log.battle li{border-left-color:var(--muted);font-family:'Space Grotesk',monospace}

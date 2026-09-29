@@ -1,5 +1,5 @@
 'use strict';
-// Passo 3: motore di conquista con esito 50/50 (la lotta vera arriva al passo 6).
+// Motore di conquista + lotta automatica (battle.js). Senza "Lotta vera" l'esito è 50/50.
 // Selezione: intoccabili (data/intoccabili.js) + giochi a caso. Colori casuali.
 const { SIZE } = Engine;
 const CELLS = SIZE * SIZE;
@@ -9,7 +9,7 @@ const LOG_MAX = 300;
 
 const $ = id => document.getElementById(id);
 const gridEl = $('grid'), coversEl = $('covers'), infoEl = $('info'), statsEl = $('stats'), logEl = $('log');
-const playBtn = $('playBtn'), stepBtn = $('stepBtn'), allBtn = $('allBtn'), speedSel = $('speedSel'), modeSel = $('modeSel');
+const playBtn = $('playBtn'), stepBtn = $('stepBtn'), allBtn = $('allBtn'), speedSel = $('speedSel'), modeSel = $('modeSel'), realBattle = $('realBattle'), battleLogEl = $('battleLog');
 
 let games = [], colors = [], state = null, cellEls = [], timer = null, selected = null;
 
@@ -55,6 +55,9 @@ function newRun() {
   colors = assignColors();
   state = Engine.create(CELLS);
   selected = null;
+  fighters.clear();
+  lastBattle = null;
+  battleLogEl.textContent = '';
   logEl.textContent = '';
   buildGrid();
   paint();
@@ -110,15 +113,39 @@ function select(o) {
 function addLog(ev) {
   const li = document.createElement('li');
   const a = games[ev.attacker].name, d = games[ev.defender].name, w = games[ev.winner].name;
-  li.textContent = `#${ev.turn} ${a} attacca ${d} (confine ${DIR_NAME[ev.dir]}): vince ${w}, +${ev.gained} ${ev.gained === 1 ? 'casella' : 'caselle'}`;
+  li.textContent = `#${ev.turn} ${a} attacca ${d} (confine ${DIR_NAME[ev.dir]}): vince ${w}${ev.rounds ? ` in ${ev.rounds} round` : ''}, +${ev.gained} ${ev.gained === 1 ? 'casella' : 'caselle'}`;
   li.style.borderLeftColor = colors[ev.winner];
   logEl.prepend(li);
   while (logEl.children.length > LOG_MAX) logEl.lastChild.remove();
 }
 
+const fighters = new Map();
+function fighter(i) {
+  if (!fighters.has(i)) fighters.set(i, Battle.makeFighter(games[i], STATS[games[i].id]));
+  return fighters.get(i);
+}
+
+let lastBattle = null;
+function resolve(attacker, defender) {
+  lastBattle = Battle.fight(fighter(attacker), fighter(defender));
+  return lastBattle.winner === 0 ? attacker : defender;
+}
+
+function showBattle() {
+  battleLogEl.textContent = '';
+  if (!lastBattle) return;
+  for (const e of lastBattle.events) {
+    const li = document.createElement('li');
+    li.textContent = e.text;
+    battleLogEl.appendChild(li);
+  }
+}
+
 function doStep() {
-  const ev = Engine.step(state, undefined, modeSel.value);
+  lastBattle = null;
+  const ev = Engine.step(state, realBattle.checked ? resolve : undefined, modeSel.value);
   if (!ev) return false;
+  ev.rounds = lastBattle && lastBattle.rounds;
   addLog(ev);
   return true;
 }
@@ -139,7 +166,7 @@ function stop() { clearTimeout(timer); timer = null; playBtn.textContent = '▶ 
 
 function loop() {
   if (!doStep() || state.alive === 1) { paint(); return finish(); }
-  paint();
+  paint(); showBattle();
   timer = setTimeout(loop, +speedSel.value);
 }
 
@@ -148,7 +175,7 @@ playBtn.onclick = () => {
   playBtn.textContent = '⏸ Pausa';
   timer = setTimeout(loop, 0);
 };
-stepBtn.onclick = () => { stop(); doStep(); paint(); if (state.alive === 1) finish(); };
+stepBtn.onclick = () => { stop(); doStep(); paint(); showBattle(); if (state.alive === 1) finish(); };
 allBtn.onclick = () => {
   stop();
   while (state.alive > 1 && doStep()) { /* esegue tutti gli scontri */ }

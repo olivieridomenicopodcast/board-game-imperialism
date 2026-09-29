@@ -5,4 +5,6 @@
   L'elenco dei giochi corretti è in `tools/id_report.json` e `data/id_fix*.json`.
 - [ ] Domino, Wolfsburg, Trivial Pursuit: `bgg_id` da trovare (ora usano stat stimate).
 - [ ] Rivedere la tabella dei vantaggi tra tipi (`data/types.js`) e le assegnazioni dei tipi (`data/type_overrides.json`).
-- [ ] Passi 6-8: lotta, schermata Game Boy, salvataggio + sync con token GitHub.
+- [x] Passo 6: lotta automatica (battle.js, data/moves.js, tools/simulate.js)
+- [ ] Passo 7: schermata di lotta stile Game Boy
+- [ ] Passo 8: salvataggio + sync con token GitHub, velocità, storico
