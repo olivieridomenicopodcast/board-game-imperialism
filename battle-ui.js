@@ -121,7 +121,7 @@
   function pages(events) {
     const out = [];
     for (const ev of events) {
-      const follow = ['miss', 'fail', 'status', 'hit', 'note'].includes(ev.kind);
+      const follow = ['miss', 'fail', 'status', 'hit', 'note', 'cure'].includes(ev.kind);
       if (follow && out.length) out[out.length - 1].push(ev); else out.push([ev]);
     }
     return out;

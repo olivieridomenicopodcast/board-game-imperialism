@@ -25,11 +25,12 @@ window.NEUTRAL_MOVES = [
   { name: 'Partita a Oltranza', power: 80, acc: 85 },
 ];
 
-// Condizioni (una alla volta per gioco). turns = [min, max] turni di durata.
+// Condizioni (una alla volta per gioco). turns = [min, max] TURNI DEL BERSAGLIO di durata (non round).
+// Sonno: salta sempre quei turni. Paralisi e confusione: effetto casuale a ogni turno, ma garantito almeno una volta.
 window.STATUSES = {
-  paralisi:   { label: 'Analysis Paralysis', move: 'Analysis Paralysis', acc: 85, turns: [3, 5], note: '35% di saltare il turno' },
-  sonno:      { label: 'Serata Infinita',    move: 'Serata Infinita',    acc: 70, turns: [1, 2], note: 'salta il turno' },
-  confusione: { label: 'Regole Confuse',     move: 'Regole Confuse',     acc: 85, turns: [2, 4], note: '33% di colpire sé stesso' },
+  paralisi:   { label: 'Analysis Paralysis', move: 'Analysis Paralysis', acc: 85, turns: [3, 5], note: '35% di saltare il turno (almeno una volta garantita)' },
+  sonno:      { label: 'Serata Infinita',    move: 'Serata Infinita',    acc: 70, turns: [1, 2], note: 'salta 1-2 turni (garantiti)' },
+  confusione: { label: 'Regole Confuse',     move: 'Regole Confuse',     acc: 85, turns: [2, 4], note: '33% di colpire sé stesso (almeno una volta garantita)' },
   debito:     { label: 'Debito',             move: 'Tassa Salata',       acc: 85, turns: [4, 5], note: 'perde 1/10 degli HP ogni turno' },
   sabotaggio: { label: 'Sabotaggio',         move: 'Sabotaggio',         acc: 90, turns: [4, 4], note: 'attacco -35%' },
 };

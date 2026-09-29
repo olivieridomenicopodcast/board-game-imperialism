@@ -4,7 +4,7 @@
 // Dipende da: data/types.js (typeMultiplier), data/moves.js.
 (function (root) {
   const CRIT_CHANCE = 0.10, CRIT_MULT = 1.5, STAB = 1.25, MAX_ROUNDS = 30;
-  const SABOTAGE_MULT = 0.65, PARALYSIS_CHANCE = 0.35, DEBT_FRAC = 10;
+  const SABOTAGE_MULT = 0.65, PARALYSIS_CHANCE = 0.35, CONFUSION_CHANCE = 0.33, DEBT_FRAC = 10;
 
   function hash(str) {                     // FNV-1a: assegnazione fissa delle mosse per gioco
     let h = 2166136261;
@@ -84,17 +84,39 @@
     const push = (side, text, extra = {}) => events.push({ side, text, hp: [S[0].hp, S[1].hp], cond: [S[0].cond && S[0].cond.kind, S[1].cond && S[1].cond.kind], ...extra });
     push(-1, `${fa.name} sfida ${fb.name}!`, { kind: 'intro' });
 
+    // Le condizioni durano un numero di TURNI DEL BERSAGLIO (non di round): chi viene addormentato o
+    // paralizzato perde davvero almeno un turno, anche se aveva già agito nel round in cui è stato colpito.
+    function endCond(s, i) {
+      if (!s.cond || S[0].hp <= 0 || S[1].hp <= 0) return;
+      if (--s.cond.left > 0) return;
+      const kind = s.cond.kind;
+      push(i, kind === 'sonno' ? `${s.f.name} si sveglia!` : `${s.f.name} non è più in ${root.STATUSES[kind].label}.`, { kind: 'cure' });
+      s.cond = null;
+    }
+
     function act(i) {
-      const me = S[i], foe = S[1 - i];
-      const c = me.cond;
-      if (c && c.kind === 'sonno') { push(i, `${me.f.name} dorme profondamente…`, { kind: 'skip' }); return; }
-      if (c && c.kind === 'paralisi' && rng() < PARALYSIS_CHANCE) { push(i, `${me.f.name} è bloccato dall'Analysis Paralysis!`, { kind: 'skip' }); return; }
-      if (c && c.kind === 'confusione' && rng() < 0.33) {
-        const d = damage(me, me, 40, 1, 1, 0.85 + rng() * 0.15, 1);
-        me.hp = Math.max(0, me.hp - d);
-        push(i, `${me.f.name} è confuso dalle regole e si fa male da solo! (-${d})`, { kind: 'self', dmg: d });
-        return;
+      const me = S[i], foe = S[1 - i], c = me.cond;
+      let lost = false;
+      if (c) {
+        // ultima possibilità: se paralisi/confusione non hanno ancora avuto alcun effetto, scatta al turno finale
+        const forced = c.left <= 1 && !c.hit;
+        if (c.kind === 'sonno') {
+          push(i, `${me.f.name} dorme profondamente…`, { kind: 'skip' }); lost = true;
+        } else if (c.kind === 'paralisi' && (forced || rng() < PARALYSIS_CHANCE)) {
+          c.hit = true;
+          push(i, `${me.f.name} è bloccato dall'Analysis Paralysis!`, { kind: 'skip' }); lost = true;
+        } else if (c.kind === 'confusione' && (forced || rng() < CONFUSION_CHANCE)) {
+          c.hit = true;
+          const d = damage(me, me, 40, 1, 1, 0.85 + rng() * 0.15, 1);
+          me.hp = Math.max(0, me.hp - d);
+          push(i, `${me.f.name} è confuso dalle regole e si fa male da solo! (-${d})`, { kind: 'self', dmg: d }); lost = true;
+        }
       }
+      if (!lost) doMove(me, foe, i);
+      endCond(me, i);
+    }
+
+    function doMove(me, foe, i) {
       const m = chooseMove(me, foe, rng);
       push(i, `${me.f.name} usa ${m.name}!`, { kind: 'use', move: m.name });
       if (rng() * 100 >= m.acc) { push(i, 'Ma manca il bersaglio!', { kind: 'miss' }); return; }
@@ -124,17 +146,13 @@
         if (S[0].hp <= 0 || S[1].hp <= 0) break;
         act(i);
       }
-      for (const i of [0, 1]) {                       // fine round: debito e scadenza delle condizioni
+      for (const i of [0, 1]) {                       // fine round: il debito costa HP
         const s = S[i];
         if (s.hp <= 0) continue;
         if (s.cond && s.cond.kind === 'debito') {
           const d = Math.max(1, Math.floor(s.f.maxHp / DEBT_FRAC));
           s.hp = Math.max(0, s.hp - d);
           push(i, `${s.f.name} paga la Tassa Salata! (-${d})`, { kind: 'dot', dmg: d });
-        }
-        if (s.cond && --s.cond.left <= 0) {
-          push(i, `${s.f.name} non è più in ${root.STATUSES[s.cond.kind].label}.`, { kind: 'cure' });
-          s.cond = null;
         }
       }
     }
