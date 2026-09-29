@@ -1,0 +1,9 @@
+#!/bin/sh
+# Incrementa il numero di build (data/version.js) a ogni commit, così il menù mostra se la webapp è aggiornata.
+# Attivazione (una volta per copia del repo): git config core.hooksPath .githooks
+f=data/version.js
+[ -f "$f" ] || exit 0
+n=$(sed -n 's/.*n: *\([0-9][0-9]*\).*/\1/p' "$f")
+n=$((${n:-0} + 1))
+printf 'window.BUILD = { n: %s, date: "%s" };\n' "$n" "$(date -u +%Y-%m-%dT%H:%MZ)" > "$f"
+git add "$f"

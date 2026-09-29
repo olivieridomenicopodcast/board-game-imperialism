@@ -225,6 +225,14 @@
     updateSyncBar();
   };
 
+  // numero di build in basso a sinistra: aumenta a ogni commit (vedi .githooks/pre-commit)
+  (function () {
+    const b = window.BUILD, tag = $('buildTag');
+    if (!b) return;
+    const d = new Date(b.date), when = isNaN(d) ? '' : ' · ' + d.toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    tag.textContent = `build ${b.n}${when}`;
+  })();
+
   window.Menu = { render };
   Store.init().then(render);
 })();
