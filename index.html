@@ -23,10 +23,14 @@
       <button id="continueBtn" type="button">▶ Continua</button>
       <button id="newBtn" type="button">➕ Nuova campagna</button>
       <button id="importBtn" type="button" class="ghost">📂 Importa file</button>
-      <button id="pullBtn" type="button" class="ghost">☁ Scarica da GitHub</button>
-      <button id="syncCfgBtn" type="button" class="ghost">⚙ GitHub</button>
       <input id="importFile" type="file" accept=".json,application/json" hidden>
     </section>
+    <div class="syncbar">
+      <span id="syncStatus" class="syncstatus"></span>
+      <button id="pullBtn" type="button" class="iconbtn" title="Pull: scarica da GitHub">⬇</button>
+      <button id="pushBtn" type="button" class="iconbtn" title="Push: carica su GitHub">⬆</button>
+      <button id="syncCfgBtn" type="button" class="iconbtn" title="Impostazioni GitHub (token)">⚙</button>
+    </div>
     <div id="campaigns" class="campaigns"></div>
     <p class="hint" id="storageNote"></p>
     <p class="hint"><a href="dex.html">Dex dei giochi</a></p>
@@ -40,7 +44,6 @@
       <button id="menuBtn" type="button" class="ghost">☰ Menu</button>
       <button id="nameBtn" type="button" class="namebtn" title="Rinomina campagna"></button>
       <button id="saveBtn" type="button">💾 Salva</button>
-      <button id="cloudBtn" type="button" class="ghost">☁ GitHub</button>
       <button id="restartBtn" type="button" class="ghost">↺ Ricomincia</button>
       <span id="saveState" class="stats"></span>
     </section>

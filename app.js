@@ -445,13 +445,6 @@ nameBtn.onclick = async () => {
   saveNow();
 };
 
-$('cloudBtn').onclick = async () => {
-  if (!(await Sync.ensureConfigured())) return;
-  await saveNow();
-  try { if (await Sync.push(cur)) Dialog.toast('Caricata su GitHub ✓'); }
-  catch (e) { Dialog.toast('GitHub: ' + e.message, 5000); }
-};
-
 $('restartBtn').onclick = async () => {
   const r = await Dialog.choose('Ricominciare da zero? I progressi di questa campagna andranno persi.', [
     { label: 'Annulla', value: null },

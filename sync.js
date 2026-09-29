@@ -67,34 +67,16 @@
       return this.configure();
     },
 
-    // Carica (o aggiorna) una campagna. Se online c'è una versione più recente chiede conferma.
-    async push(campaign) {
+    // Controlla token e repository. Ritorna il nome del repo o lancia un errore chiaro.
+    async test() {
       const cfg = config();
-      const path = `${dir(cfg)}/${campaign.id}.json`;
-      const url = `/repos/${cfg.repo}/contents/${path.split('/').map(encodeURIComponent).join('/')}`;
-      const cur = await gh(cfg, 'GET', url + branchQ(cfg));
-      let sha;
-      if (cur.status !== 404) {
-        sha = cur.data.sha;
-        let remote = null;
-        try { remote = JSON.parse(b64decode(cur.data.content)); } catch (e) { /* file illeggibile: si sovrascrive */ }
-        if (remote && remote.updated > campaign.updated) {
-          const ok = await Dialog.confirm(`Su GitHub c'è una versione più recente di «${campaign.name}». Sovrascriverla con quella di questo dispositivo?`,
-            { okLabel: 'Sovrascrivi', danger: true });
-          if (!ok) return false;
-        }
-      }
-      await gh(cfg, 'PUT', url, {
-        message: `Salva campagna: ${campaign.name}`,
-        content: b64encode(JSON.stringify(campaign)),
-        ...(cfg.branch ? { branch: cfg.branch } : {}),
-        ...(sha ? { sha } : {}),
-      });
-      return true;
+      const r = await gh(cfg, 'GET', `/repos/${cfg.repo}`);
+      if (r.status === 404) throw new Error('Repository non trovato (nome sbagliato o token senza accesso).');
+      return r.data.full_name;
     },
 
-    // Elenco delle campagne online: [{id, name, updated, progress, campaign}]
-    async list() {
+    // Elenco delle campagne online: [{campaign, sha}] (i file non validi sono ignorati)
+    async listRemote() {
       const cfg = config();
       const res = await gh(cfg, 'GET', `/repos/${cfg.repo}/contents/${dir(cfg)}${branchQ(cfg)}`);
       if (res.status === 404) return [];
@@ -104,11 +86,42 @@
         if (one.status === 404) continue;
         try {
           const c = JSON.parse(b64decode(one.data.content));
-          if (!Store.validate(c)) out.push(c);
+          if (!Store.validate(c)) out.push({ campaign: c, sha: one.data.sha });
         } catch (e) { /* file non valido: ignorato */ }
       }
-      return out.sort((a, b) => b.updated - a.updated);
+      return out;
     },
+
+    // Scrive (o aggiorna, se si passa lo sha) il file di una campagna.
+    async upload(campaign, sha) {
+      const cfg = config();
+      const path = `${dir(cfg)}/${campaign.id}.json`;
+      await gh(cfg, 'PUT', `/repos/${cfg.repo}/contents/${path.split('/').map(encodeURIComponent).join('/')}`, {
+        message: `Salva campagna: ${campaign.name}`,
+        content: b64encode(JSON.stringify(campaign)),
+        ...(cfg.branch ? { branch: cfg.branch } : {}),
+        ...(sha ? { sha } : {}),
+      });
+    },
+
+    // Cancella dal repository la copia di una campagna (se esiste).
+    async removeRemote(id) {
+      const cfg = config();
+      const path = `${dir(cfg)}/${id}.json`;
+      const url = `/repos/${cfg.repo}/contents/${path.split('/').map(encodeURIComponent).join('/')}`;
+      const cur = await gh(cfg, 'GET', url + branchQ(cfg));
+      if (cur.status === 404) return false;
+      await gh(cfg, 'DELETE', url, { message: `Elimina campagna ${id}`, sha: cur.data.sha, ...(cfg.branch ? { branch: cfg.branch } : {}) });
+      return true;
+    },
+
+    // Per ogni campagna: il valore di "updated" all'ultima sincronizzazione riuscita (serve a riconoscere i conflitti).
+    synced() { try { return JSON.parse(localStorage.getItem('bgi.synced')) || {}; } catch (e) { return {}; } },
+    markSynced(id, updated) {
+      const m = this.synced(); m[id] = updated;
+      try { localStorage.setItem('bgi.synced', JSON.stringify(m)); localStorage.setItem('bgi.lastSync', String(Date.now())); } catch (e) { /* ok */ }
+    },
+    lastSync() { const v = +localStorage.getItem('bgi.lastSync'); return v || null; },
   };
   root.Sync = api;
 })(window);

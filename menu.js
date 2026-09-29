@@ -61,12 +61,13 @@
 
   async function render() {
     const all = await Store.list();
+    updateSyncBar();
     listEl.textContent = '';
     const last = all.find(c => c.id === Store.lastId()) || all[0];
     continueBtn.disabled = !last;
     continueBtn.textContent = last ? `▶ Continua: ${last.name}` : '▶ Continua';
     continueBtn.onclick = () => last && Game.open(last);
-    $('storageNote').textContent = `Salvataggio automatico su questo dispositivo (${Store.storageKind}). Per non perderli, usa Esporta o ☁ GitHub.`;
+    $('storageNote').textContent = `Salvataggio automatico su questo dispositivo (${Store.storageKind}). Per non perderli usa ⬆ Push (GitHub) oppure Esporta.`;
 
     if (!all.length) {
       el('p', 'empty', listEl, 'Nessuna campagna. Premi «Nuova campagna» per iniziare!');
@@ -101,15 +102,14 @@
         await Store.put(copy); render(); Dialog.toast('Campagna duplicata');
       });
       btn('⬇', 'Esporta in un file', () => download(`bgi-${safeName(c.name)}.json`, JSON.stringify(c)));
-      btn('☁', 'Carica su GitHub', async () => {
-        if (!(await Sync.ensureConfigured())) return;
-        try { if (await Sync.push(c)) Dialog.toast('Caricata su GitHub ✓'); }
-        catch (e) { Dialog.toast('GitHub: ' + e.message, 5000); }
-      });
       btn('🗑', 'Elimina', async () => {
         const ok = await Dialog.confirm(`Sei sicuro di voler cancellare «${c.name}»? Non si può annullare.`, { okLabel: 'Cancella', danger: true, title: 'Elimina campagna' });
         if (!ok) return;
         await Store.remove(c.id);
+        if (Sync.isReady() && Sync.synced()[c.id] !== undefined) {
+          const both = await Dialog.confirm('Eliminare anche la copia su GitHub? Altrimenti al prossimo Pull tornerebbe qui.', { okLabel: 'Sì, anche su GitHub', cancelLabel: 'No, solo qui', danger: true });
+          if (both) { try { await Sync.removeRemote(c.id); } catch (e) { Dialog.toast('GitHub: ' + e.message, 5000); } }
+        }
         render(); Dialog.toast('Campagna cancellata');
       }, 'ghost small danger');
       card.onclick = () => Game.open(c);
@@ -134,19 +134,95 @@
     if (await adopt(c)) { await render(); Dialog.toast('Campagna importata'); }
   };
 
-  $('syncCfgBtn').onclick = async () => { if (await Sync.configure()) Dialog.toast('Impostazioni GitHub salvate'); };
+  // ---- sync con GitHub: ⚙ token, ⬇ Pull, ⬆ Push (come nelle altre web app) ----
+  let syncBusy = false;
 
-  $('pullBtn').onclick = async () => {
-    if (!(await Sync.ensureConfigured())) return;
-    let remote;
-    try { Dialog.toast('Cerco le campagne su GitHub…'); remote = await Sync.list(); }
-    catch (e) { Dialog.toast('GitHub: ' + e.message, 5000); return; }
-    if (!remote.length) { Dialog.toast('Nessuna campagna trovata su GitHub.', 4000); return; }
-    // scelta: una alla volta, dalla più recente
-    const buttons = remote.slice(0, 6).map(c => ({ label: `${c.name} (${fmtDate(c.updated)})`, value: c.id }));
-    const id = await Dialog.choose('Quale campagna vuoi scaricare?', [{ label: 'Annulla', value: null }, ...buttons], 'Scarica da GitHub');
-    if (!id) return;
-    if (await adopt(remote.find(c => c.id === id))) { await render(); Dialog.toast('Campagna scaricata'); }
+  function updateSyncBar() {
+    const st = $('syncStatus');
+    if (Sync.isReady()) {
+      const t = Sync.lastSync();
+      st.textContent = '✓ Sync configurato' + (t ? ` · ultimo: ${fmtDate(t)}` : '');
+      st.className = 'syncstatus ok';
+    } else {
+      st.textContent = '⚠ Sync non configurato: tocca ⚙';
+      st.className = 'syncstatus';
+    }
+    for (const id of ['pullBtn', 'pushBtn']) $(id).disabled = syncBusy;
+  }
+
+  async function withSync(fn) {
+    if (syncBusy || !(await Sync.ensureConfigured())) { updateSyncBar(); return; }
+    syncBusy = true; updateSyncBar();
+    try { await fn(); }
+    catch (e) { Dialog.toast('GitHub: ' + e.message, 6000); }
+    finally { syncBusy = false; await render(); }
+  }
+
+  const askConflict = (c, remoteDate) => Dialog.choose(
+    `«${c.name}» è cambiata sia su questo dispositivo sia su GitHub (${fmtDate(remoteDate)}). Quale versione tieni? L'altra andrà persa.`, [
+      { label: 'Salta', value: null },
+      { label: 'Tieni GitHub', value: 'remote' },
+      { label: 'Tieni questo dispositivo', value: 'local', kind: 'danger' },
+    ], 'Conflitto');
+
+  // ⬆ Push: manda su GitHub le campagne di questo dispositivo
+  $('pushBtn').onclick = () => withSync(async () => {
+    Dialog.toast('⬆ Push in corso…');
+    const local = await Store.list(), remote = Object.fromEntries((await Sync.listRemote()).map(r => [r.campaign.id, r]));
+    const synced = Sync.synced();
+    const n = { up: 0, same: 0, behind: 0, down: 0, skip: 0 };
+    for (const L of local) {
+      const R = remote[L.id];
+      if (!R) { await Sync.upload(L); Sync.markSynced(L.id, L.updated); n.up++; continue; }
+      const ru = R.campaign.updated;
+      if (ru === L.updated) { Sync.markSynced(L.id, L.updated); n.same++; continue; }
+      const localDirty = synced[L.id] !== L.updated;
+      const remoteChanged = synced[L.id] !== undefined && ru !== synced[L.id];
+      if (ru > L.updated && !localDirty) { n.behind++; continue; }          // GitHub è più avanti: serve un Pull
+      if (ru > L.updated || remoteChanged) {
+        const r = await askConflict(L, ru);
+        if (r === 'local') { await Sync.upload(L, R.sha); Sync.markSynced(L.id, L.updated); n.up++; }
+        else if (r === 'remote') { await Store.put(R.campaign); Sync.markSynced(L.id, ru); n.down++; }
+        else n.skip++;
+        continue;
+      }
+      await Sync.upload(L, R.sha); Sync.markSynced(L.id, L.updated); n.up++;
+    }
+    const parts = [`${n.up} caricate`, n.same && `${n.same} già aggiornate`, n.down && `${n.down} scaricate`, n.behind && `${n.behind} più recenti su GitHub (fai Pull)`, n.skip && `${n.skip} saltate`].filter(Boolean);
+    Dialog.toast('⬆ Push: ' + (parts.join(', ') || 'niente da fare'), 5000);
+  });
+
+  // ⬇ Pull: porta qui le campagne di GitHub
+  $('pullBtn').onclick = () => withSync(async () => {
+    Dialog.toast('⬇ Pull in corso…');
+    const remote = await Sync.listRemote();
+    const local = Object.fromEntries((await Store.list()).map(c => [c.id, c]));
+    const synced = Sync.synced();
+    const n = { add: 0, upd: 0, same: 0, ahead: 0, skip: 0 };
+    for (const { campaign: R } of remote) {
+      const L = local[R.id];
+      if (!L) { await Store.put(R); Sync.markSynced(R.id, R.updated); n.add++; continue; }
+      if (R.updated === L.updated) { Sync.markSynced(R.id, R.updated); n.same++; continue; }
+      if (R.updated < L.updated) { n.ahead++; continue; }                    // il dispositivo è più avanti: serve un Push
+      if (synced[R.id] !== L.updated) {                                       // modificata qui dopo l'ultima sync: conflitto
+        const r = await askConflict(L, R.updated);
+        if (r === 'remote') { await Store.put(R); Sync.markSynced(R.id, R.updated); n.upd++; }
+        else if (r === 'local') n.ahead++; else n.skip++;
+        continue;
+      }
+      await Store.put(R); Sync.markSynced(R.id, R.updated); n.upd++;
+    }
+    if (!remote.length) { Dialog.toast('⬇ Pull: su GitHub non ci sono ancora campagne.', 5000); return; }
+    const parts = [n.add && `${n.add} nuove`, n.upd && `${n.upd} aggiornate`, n.same && `${n.same} già aggiornate`, n.ahead && `${n.ahead} più avanti qui (fai Push)`, n.skip && `${n.skip} saltate`].filter(Boolean);
+    Dialog.toast('⬇ Pull: ' + (parts.join(', ') || 'niente da fare'), 5000);
+  });
+
+  // ⚙ token e repository
+  $('syncCfgBtn').onclick = async () => {
+    if (!(await Sync.configure())) { updateSyncBar(); return; }
+    try { Dialog.toast('Connesso a ' + await Sync.test() + ' ✓'); }
+    catch (e) { Dialog.toast('GitHub: ' + e.message, 6000); }
+    updateSyncBar();
   };
 
   window.Menu = { render };
