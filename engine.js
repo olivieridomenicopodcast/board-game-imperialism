@@ -57,27 +57,36 @@
     return { turn: state.turn, from: p.from, to: p.to, dir: p.dir, attacker, defender, winner, loser, gained };
   }
 
-  // Per ogni gioco vivo: il quadrato più grande (max MAX_COVER) interamente nel suo territorio,
-  // scelto il più vicino al centro del territorio. Su quel quadrato va disegnata la copertina.
+  // Per ogni gioco vivo: il quadrato più grande (max MAX_COVER) interamente dentro il suo territorio.
+  // Il quadrato può stare anche "a cavallo" tra due caselle (posizioni a mezza casella), così si può
+  // centrare sul territorio: tra i quadrati della stessa dimensione vince quello più vicino al centro.
   function placements(state) {
     const groups = new Map();
     state.owner.forEach((o, i) => { if (!groups.has(o)) groups.set(o, []); groups.get(o).push(i); });
     const res = [];
     for (const [o, list] of groups) {
-      let sr = 0, sc = 0;
-      for (const i of list) { sr += Math.floor(i / SIZE); sc += i % SIZE; }
+      let sr = 0, sc = 0, minR = SIZE, minC = SIZE, maxR = 0, maxC = 0;
+      for (const i of list) {
+        const r = Math.floor(i / SIZE), c = i % SIZE;
+        sr += r; sc += c;
+        minR = Math.min(minR, r); maxR = Math.max(maxR, r); minC = Math.min(minC, c); maxC = Math.max(maxC, c);
+      }
       const cr = sr / list.length, cc = sc / list.length;
-      const mine = i => state.owner[i] === o;
+      const mine = (r, c) => r >= 0 && c >= 0 && r < SIZE && c < SIZE && state.owner[r * SIZE + c] === o;
+      // il quadrato [r0, r0+s) x [c0, c0+s) sta nel territorio se tutte le caselle che tocca sono sue
+      const fits = (r0, c0, s) => {
+        for (let r = Math.floor(r0 + 1e-9); r < Math.ceil(r0 + s - 1e-9); r++)
+          for (let c = Math.floor(c0 + 1e-9); c < Math.ceil(c0 + s - 1e-9); c++) if (!mine(r, c)) return false;
+        return true;
+      };
       let best = null;
       for (let s = Math.min(MAX_COVER, Math.floor(Math.sqrt(list.length))); s >= 1 && !best; s--) {
-        for (const i of list) {
-          const r0 = Math.floor(i / SIZE), c0 = i % SIZE;
-          if (r0 + s > SIZE || c0 + s > SIZE) continue;
-          let ok = true;
-          for (let r = r0; r < r0 + s && ok; r++) for (let c = c0; c < c0 + s; c++) if (!mine(r * SIZE + c)) { ok = false; break; }
-          if (!ok) continue;
-          const dist = Math.hypot(r0 + (s - 1) / 2 - cr, c0 + (s - 1) / 2 - cc);
-          if (!best || dist < best.dist) best = { owner: o, r: r0, c: c0, s, dist };
+        for (let r0 = minR; r0 <= maxR - s + 1 + 1e-9; r0 += 0.5) {
+          for (let c0 = minC; c0 <= maxC - s + 1 + 1e-9; c0 += 0.5) {
+            if (!fits(r0, c0, s)) continue;
+            const dist = Math.hypot(r0 + (s - 1) / 2 - cr, c0 + (s - 1) / 2 - cc);
+            if (!best || dist < best.dist - 1e-9) best = { owner: o, r: r0, c: c0, s, dist };
+          }
         }
       }
       res.push(best);
