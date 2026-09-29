@@ -1,6 +1,6 @@
 'use strict';
 // Passo 3: motore di conquista con esito 50/50 (la lotta vera arriva al passo 6).
-// Selezione e colori provvisori (casuali).
+// Selezione: intoccabili (data/intoccabili.js) + giochi a caso. Colori casuali.
 const { SIZE } = Engine;
 const CELLS = SIZE * SIZE;
 const PALETTE = ['#c0392b','#2980b9','#27ae60','#f39c12','#8e44ad','#16a085','#d35400','#e84393','#7f8c8d','#2c3e50'];
@@ -30,9 +30,28 @@ function assignColors() {
   return col.map(k => PALETTE[k]);
 }
 
+// "1-3, 7" -> [1,2,3,7]
+function parseKeep(str) {
+  const out = new Set();
+  for (const part of str.split(',')) {
+    const m = part.trim().match(/^(\d+)(?:\s*-\s*(\d+))?$/);
+    if (!m) continue;
+    for (let n = +m[1]; n <= +(m[2] || m[1]); n++) out.add(n);
+  }
+  return out;
+}
+
+// Tutti gli intoccabili + giochi a caso fino a riempire la griglia.
+function pickGames() {
+  const keep = parseKeep(window.KEEP || '');
+  const pinned = window.GAMES.filter(g => keep.has(g.n));
+  const rest = shuffle(window.GAMES.filter(g => !keep.has(g.n)));
+  return shuffle(pinned.concat(rest).slice(0, Math.max(CELLS, pinned.length)).slice(0, CELLS));
+}
+
 function newRun() {
   stop();
-  games = shuffle(window.GAMES.slice()).slice(0, CELLS);
+  games = pickGames();
   colors = assignColors();
   state = Engine.create(CELLS);
   selected = null;
