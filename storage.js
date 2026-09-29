@@ -62,7 +62,7 @@
     // Nuova campagna vuota dai giochi e dai colori scelti (ogni gioco parte nella propria casella).
     create(name, gameIds, colors) {
       const now = Date.now();
-      return { v: VERSION, id: uid(), name, created: now, updated: now, games: gameIds, colors,
+      return { v: VERSION, id: uid(), name, created: now, updated: now, size: Math.round(Math.sqrt(gameIds.length)), games: gameIds, colors,
                owner: gameIds.map((_, i) => i), wins: gameIds.map(() => 0), turn: 0, log: [], winner: null };
     },
 
@@ -72,6 +72,7 @@
       if (!c || typeof c.id !== 'string' || typeof c.name !== 'string' || !n) return 'Il file non è una campagna valida.';
       if (!['colors', 'owner', 'wins'].every(k => Array.isArray(c[k]) && c[k].length === n)) return 'Dati della campagna incompleti.';
       if (c.owner.some(o => !Number.isInteger(o) || o < 0 || o >= n)) return 'Dati della mappa non validi.';
+      if (!Number.isInteger(Math.sqrt(n))) return 'La mappa non è una griglia quadrata.';
       if (c.v > VERSION) return 'Salvataggio creato da una versione più nuova del gioco.';
       return null;
     },

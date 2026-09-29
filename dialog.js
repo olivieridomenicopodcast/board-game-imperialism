@@ -22,13 +22,23 @@
       for (const f of fields) {
         const label = h('label', 'dlg-field', box);
         h('span', '', label, f.label);
-        const input = h('input', '', label);
-        input.type = f.type || 'text';
+        let input;
+        if (f.type === 'select') {
+          input = h('select', '', label);
+          for (const o of f.options) { const op = h('option', '', input, o.label); op.value = o.value; }
+        } else {
+          input = h('input', '', label);
+          input.type = f.type || 'text';
+          if (f.placeholder) input.placeholder = f.placeholder;
+          input.autocomplete = 'off';
+        }
         input.value = f.value || '';
-        if (f.placeholder) input.placeholder = f.placeholder;
-        input.autocomplete = 'off';
         inputs[f.name] = input;
         if (f.hint) h('small', '', label, f.hint);
+        if (f.hintFn) {                                   // suggerimento che si aggiorna con il valore scelto
+          const small = h('small', 'dlg-live', label, f.hintFn(input.value));
+          input.addEventListener('input', () => { small.textContent = f.hintFn(input.value); });
+        }
       }
       const row = h('div', 'dlg-btns', box);
       const values = () => Object.fromEntries(Object.entries(inputs).map(([k, i]) => [k, i.value]));

@@ -2,8 +2,7 @@
 // Motore di conquista + lotta automatica (battle.js). Senza "Lotta vera" l'esito è 50/50.
 // Partita (una campagna alla volta). Selezione: intoccabili (data/intoccabili.js) + giochi a caso.
 // Le campagne si salvano da sole (storage.js) e si gestiscono dal menu (menu.js).
-const { SIZE } = Engine;
-const CELLS = SIZE * SIZE;
+let SIZE = Engine.DEFAULT_SIZE;   // lato della griglia della campagna aperta
 const PALETTE = ['#c0392b','#2980b9','#27ae60','#f39c12','#8e44ad','#16a085','#d35400','#e84393','#7f8c8d','#2c3e50'];
 const DIR_NAME = { N: 'nord', S: 'sud', E: 'est', O: 'ovest' };
 const LOG_MAX = 300;
@@ -25,9 +24,9 @@ function shuffle(a) {
 }
 
 // Colori casuali senza colori uguali adiacenti (N/S/E/O). Con 10 colori il greedy riesce sempre.
-function assignColors() {
-  const col = new Array(CELLS).fill(-1);
-  for (let i = 0; i < CELLS; i++) {
+function assignColors(size) {
+  const SIZE = size, n = size * size, col = new Array(n).fill(-1);
+  for (let i = 0; i < n; i++) {
     const r = Math.floor(i / SIZE), c = i % SIZE, bad = new Set();
     if (r > 0) bad.add(col[i - SIZE]);
     if (c > 0) bad.add(col[i - 1]);
@@ -47,18 +46,20 @@ function parseKeep(str) {
   return out;
 }
 
-// Tutti gli intoccabili + giochi a caso fino a riempire la griglia.
-function pickGames() {
+// Giochi per una griglia di n caselle: se ci stanno tutti, gli intoccabili e il resto a caso;
+// se la griglia è più piccola degli intoccabili, ne entrano n scelti a caso tra loro.
+function pickGames(n) {
   const keep = parseKeep(window.KEEP || '');
-  const pinned = window.GAMES.filter(g => keep.has(g.n));
+  const pinned = shuffle(window.GAMES.filter(g => keep.has(g.n)));
+  if (n <= pinned.length) return shuffle(pinned.slice(0, n));
   const rest = shuffle(window.GAMES.filter(g => !keep.has(g.n)));
-  return shuffle(pinned.concat(rest).slice(0, Math.max(CELLS, pinned.length)).slice(0, CELLS));
+  return shuffle(pinned.concat(rest.slice(0, n - pinned.length)));
 }
 
 // Nuova campagna: sceglie i 225 giochi e i colori e la salva.
-function createCampaign(name) {
-  const g = pickGames();
-  return Store.create(name, g.map(x => x.id), assignColors());
+function createCampaign(name, size = Engine.DEFAULT_SIZE) {
+  const g = pickGames(size * size);
+  return Store.create(name, g.map(x => x.id), assignColors(size));
 }
 
 // Carica una campagna nella schermata di gioco.
@@ -68,6 +69,7 @@ function load(c) {
   if (BattleUI.active) BattleUI.skip();
   clearDraw();
   cur = c;
+  SIZE = Math.round(Math.sqrt(c.games.length));
   games = c.games.map(id => GAME_BY_ID[id]);
   colors = c.colors;
   state = { owner: c.owner.slice(), alive: new Set(c.owner).size, turn: c.turn, wins: c.wins.slice() };
@@ -88,6 +90,9 @@ function load(c) {
 
 function buildGrid() {
   gridEl.textContent = '';
+  boardEl.style.setProperty('--n', SIZE);
+  gridEl.setAttribute('aria-label', `Mappa ${SIZE} per ${SIZE}`);
+  arrowEl.setAttribute('viewBox', `0 0 ${SIZE} ${SIZE}`);
   cellEls = games.map((g, i) => {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'cell'; b.setAttribute('role', 'gridcell');
@@ -118,7 +123,7 @@ function paint() {
     b.onclick = () => select(p.owner);
     coversEl.appendChild(b);
   }
-  statsEl.textContent = `Giochi in vita: ${state.alive} / ${CELLS} · Scontri: ${state.turn}`;
+  statsEl.textContent = `Giochi in vita: ${state.alive} / ${games.length} · Scontri: ${state.turn}`;
 }
 
 function select(o) {
@@ -452,7 +457,7 @@ $('restartBtn').onclick = async () => {
     { label: 'Nuova mappa', value: 'new', kind: 'danger' },
   ], 'Ricomincia');
   if (!r) return;
-  const fresh = r === 'new' ? createCampaign(cur.name) : Store.create(cur.name, cur.games, cur.colors);
+  const fresh = r === 'new' ? createCampaign(cur.name, SIZE) : Store.create(cur.name, cur.games, cur.colors);
   fresh.id = cur.id; fresh.created = cur.created;
   load(fresh);
   await saveNow();
@@ -463,6 +468,7 @@ $('menuBtn').onclick = () => Game.leave();
 // ---- API verso il menu ----
 window.Game = {
   createCampaign,
+  keepCount: () => parseKeep(window.KEEP || '').size,
   open(c) {
     load(c);
     Store.setLast(c.id);

@@ -15,9 +15,10 @@ button{font:inherit;font-weight:600;background:var(--gold);color:var(--ink);bord
 button:hover{filter:brightness(1.1)}
 .stats{color:var(--muted);font-size:.85rem;margin:0 0 8px}
 .board{padding:4px;background:var(--panel);border:2px solid var(--gold);border-radius:6px}
-.grid{display:grid;grid-template-columns:repeat(15,1fr);aspect-ratio:1;container-type:inline-size}
+.grid{display:grid;grid-template-columns:repeat(var(--n,15),1fr);aspect-ratio:1;container-type:inline-size}
 .covers{position:absolute;inset:4px;pointer-events:none}
-.board{position:relative}
+.board{position:relative;min-width:calc(var(--n,15) * 22px)}   /* mappe grandi: scorrimento orizzontale invece di caselle minuscole */
+.boardwrap{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
 .cell{padding:0;border:0;border-radius:0;box-shadow:inset 0 0 0 1px rgba(0,0,0,.28);cursor:pointer;
   background-image:linear-gradient(rgba(255,255,255,.12),rgba(255,255,255,0))}
 .cover{position:absolute;pointer-events:auto;padding:0;overflow:hidden;cursor:pointer;background:var(--c);
@@ -137,3 +138,6 @@ button.danger,.dlg-btn.danger{border-color:#c0392b;color:#ff8a7a}
 #syncCfgBtn{color:#ff6b6b}
 
 .buildtag{position:fixed;left:10px;bottom:6px;font-size:.72rem;color:var(--muted);opacity:.75;pointer-events:none;z-index:5}
+
+.dlg-field select{display:block;width:100%;margin-top:4px;font:inherit;padding:7px 9px;border:2px solid #7a6a44;border-radius:6px;background:#fffdf5;color:var(--ink)}
+.dlg-live{color:#4a3a1a !important;font-weight:600 !important}

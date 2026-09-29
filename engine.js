@@ -2,7 +2,7 @@
 // Motore di conquista (puro, senza DOM). Ogni gioco parte proprietario della propria casella.
 // Il vincitore di uno scontro assorbe TUTTE le caselle dello sconfitto, che esce dalla run.
 (function (root) {
-  const SIZE = 15;
+  const DEFAULT_SIZE = 15;   // le campagne salvano la propria dimensione (lato della griglia quadrata)
   const MAX_COVER = 5; // lato massimo (in caselle) della copertina disegnata sul territorio
   const DIRS = [
     { dr: -1, dc: 0, name: 'N' }, { dr: 1, dc: 0, name: 'S' },
@@ -11,8 +11,10 @@
 
   const rand = n => Math.floor(Math.random() * n);
 
-  function create(n = SIZE * SIZE) {
-    return { owner: Array.from({ length: n }, (_, i) => i), alive: n, turn: 0, wins: new Array(n).fill(0) };
+  const sizeOf = state => state.size || Math.round(Math.sqrt(state.owner.length));
+
+  function create(n = DEFAULT_SIZE * DEFAULT_SIZE) {
+    return { size: Math.round(Math.sqrt(n)), owner: Array.from({ length: n }, (_, i) => i), alive: n, turn: 0, wins: new Array(n).fill(0) };
   }
 
   // Esito provvisorio: 50/50. Verrà sostituito dal sistema di lotta (passo 6).
@@ -21,7 +23,7 @@
   // Tutte le coppie (casella, direzione) che portano a un territorio di un altro proprietario.
   // Estrarre uno di questi a caso equivale a sorteggiare casella+direzione ripetendo finché è valida.
   function borders(state) {
-    const out = [];
+    const SIZE = sizeOf(state), out = [];
     for (let i = 0; i < state.owner.length; i++) {
       const r = Math.floor(i / SIZE), c = i % SIZE;
       for (const d of DIRS) {
@@ -61,7 +63,7 @@
   // Il quadrato può stare anche "a cavallo" tra due caselle (posizioni a mezza casella), così si può
   // centrare sul territorio: tra i quadrati della stessa dimensione vince quello più vicino al centro.
   function placements(state) {
-    const groups = new Map();
+    const SIZE = sizeOf(state), groups = new Map();
     state.owner.forEach((o, i) => { if (!groups.has(o)) groups.set(o, []); groups.get(o).push(i); });
     const res = [];
     for (const [o, list] of groups) {
@@ -94,7 +96,7 @@
     return res;
   }
 
-  const api = { SIZE, MAX_COVER, create, step, borders, placements, coinFlip };
+  const api = { DEFAULT_SIZE, sizeOf, MAX_COVER, create, step, borders, placements, coinFlip };
   root.Engine = api;
   if (typeof module !== 'undefined') module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

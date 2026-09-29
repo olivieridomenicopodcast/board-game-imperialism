@@ -17,7 +17,7 @@
 
   // miniatura della mappa: un pixel-blocco per casella, del colore del proprietario
   function thumb(c) {
-    const S = 15, px = 3, cv = document.createElement('canvas');
+    const S = Math.round(Math.sqrt(c.owner.length)), px = Math.max(1, Math.floor(90 / S)), cv = document.createElement('canvas');
     cv.width = cv.height = S * px; cv.className = 'thumb';
     const g = cv.getContext('2d');
     c.owner.forEach((o, i) => { g.fillStyle = c.colors[o]; g.fillRect((i % S) * px, Math.floor(i / S) * px, px, px); });
@@ -116,10 +116,23 @@
     }
   }
 
+  // finestra "Nuova campagna": nome + dimensione della mappa (con quante sfide e video servono)
+  function sizeHint(v) {
+    const n = +v, cells = n * n, fights = cells - 1, videos = Math.ceil(fights / 3), keep = Game.keepCount();
+    const pins = cells < keep ? `intoccabili: ${cells} scelti a caso tra i ${keep}` : `${keep} intoccabili + ${cells - keep} a caso`;
+    return `${cells} giochi (${pins}) · ${fights} sfide · ${videos} video da 3 sfide, ~${(videos / 4.345).toFixed(1).replace('.', ',')} mesi a 1 a settimana`;
+  }
+
   $('newBtn').onclick = async () => {
-    const n = await Dialog.prompt('Nome della nuova campagna', await nameFor('Campagna'), 'Nuova campagna');
-    if (!n) return;
-    const c = Game.createCampaign(n);
+    const maxN = Math.floor(Math.sqrt(window.GAMES.length));
+    const options = [];
+    for (let n = 5; n <= maxN; n++) options.push({ value: String(n), label: `${n} × ${n}  (${n * n} giochi)` });
+    const r = await Dialog.form('Nuova campagna', [
+      { name: 'name', label: 'Nome della campagna', value: await nameFor('Campagna') },
+      { name: 'size', label: 'Dimensione della mappa', type: 'select', value: '15', options, hintFn: sizeHint },
+    ], 'Crea');
+    if (!r || !r.name.trim()) return;
+    const c = Game.createCampaign(r.name.trim(), +r.size);
     await Store.put(c);
     Game.open(c);
   };
