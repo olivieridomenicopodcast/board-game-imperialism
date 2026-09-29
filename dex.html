@@ -32,6 +32,7 @@ td.w{background:#27ae6088}td.l{background:#c0392b88}
     <select id="typeSel"></select>
     <label class="speed"><input id="pinOnly" type="checkbox"> solo intoccabili</label>
     <span id="count" class="stats"></span>
+    <button id="exportOvr" type="button" class="ghost small">⬇ Esporta correzioni tipi</button>
   </section>
   <div id="cards" class="cards"></div>
   <section class="logwrap"><h2>Tabella dei tipi</h2>
@@ -41,8 +42,14 @@ td.w{background:#27ae6088}td.l{background:#c0392b88}
 </main>
 <script src="data/games.js"></script>
 <script src="data/stats.js"></script>
+<script src="data/bgg.js"></script>
+<script src="data/moves.js"></script>
 <script src="data/types.js"></script>
 <script src="data/intoccabili.js"></script>
+<script src="overrides.js"></script>
+<script src="battle.js"></script>
+<script src="dialog.js"></script>
+<script src="card.js"></script>
 <script>
 'use strict';
 const $ = id => document.getElementById(id);
@@ -59,12 +66,20 @@ function render() {
   $('count').textContent = list.length + ' giochi';
   $('cards').innerHTML = list.map(g => {
     const s = STATS[g.id], t = tcol[s.t];
-    return `<div class="card"><img src="${g.cover}" alt="" loading="lazy"><div><h3>${keep.has(g.n) ? '<span class="pin">★</span> ' : ''}${g.n}. ${g.name}</h3>
-      <span class="badge" style="background:${t.color}">${t.icon} ${s.t}</span>${s.est ? `<br><small>stimato: ${s.est.join(', ')}</small>` : ''}</div>
+    return `<div class="card" data-id="${g.id}" style="cursor:pointer"><img src="${g.cover}" alt="" loading="lazy"><div><h3>${keep.has(g.n) ? '<span class="pin">★</span> ' : ''}${g.n}. ${g.name}</h3>
+      <span class="badge" style="background:${t.color}">${t.icon} ${s.t}</span>${TypeOverrides.isChanged(g.id) ? ' <small>✎ modificato</small>' : ''}${s.est ? `<br><small>stimato: ${s.est.join(', ')}</small>` : ''}</div>
       <div class="bars">${bar('HP', s.hp, 170)}${bar('ATT', s.atk, 110)}${bar('DIF', s.def, 115)}${bar('VEL', s.spd, 110)}</div></div>`;
   }).join('');
 }
 ['q', 'typeSel', 'pinOnly'].forEach(id => $(id).addEventListener('input', render));
+$('cards').addEventListener('click', e => { const c = e.target.closest('.card'); if (c) Card.show(c.dataset.id); });
+window.addEventListener('typechange', render);
+$('exportOvr').onclick = () => {
+  if (!TypeOverrides.count()) { Dialog.toast('Nessuna correzione da esportare'); return; }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(TypeOverrides.export(), null, 1)], { type: 'application/json' }));
+  a.download = 'type_overrides_export.json'; document.body.appendChild(a); a.click(); a.remove();
+};
 $('chart').innerHTML = '<tr><th></th>' + TYPES.map(t => `<th title="${t.id}">${t.icon}</th>`).join('') + '</tr>' +
   TYPES.map(a => `<tr><th title="${a.id}">${a.icon} ${a.id}</th>` + TYPES.map(d => {
     const m = typeMultiplier(a.id, d.id); return `<td class="${m > 1 ? 'w' : m < 1 ? 'l' : ''}">${m > 1 ? '×1.5' : m < 1 ? '×.67' : ''}</td>`;

@@ -123,7 +123,11 @@ function select(o) {
   const g = games[o];
   infoEl.textContent = '';
   const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = colors[o];
-  infoEl.append(dot, `#${g.n} ${g.name} — BGG ${g.id} — territorio: ${size} caselle — scontri vinti: ${state.wins[o]}`);
+  infoEl.append(dot, `#${g.n} ${g.name} — ${STATS[g.id].t} — territorio: ${size} caselle — scontri vinti: ${state.wins[o]} `);
+  const cardBtn = document.createElement('button');
+  cardBtn.type = 'button'; cardBtn.className = 'small'; cardBtn.textContent = '🃏 Scheda';
+  cardBtn.onclick = () => Card.show(g.id, { territory: size, wins: state.wins[o], color: colors[o] });
+  infoEl.appendChild(cardBtn);
   paint();
 }
 
@@ -235,6 +239,9 @@ for (const id of ['speedSel', 'modeSel', 'realBattle', 'showBattles', 'battleMod
   } catch (err) { /* localStorage non disponibile */ }
   e.addEventListener('change', () => { try { localStorage.setItem(key, box ? (e.checked ? '1' : '0') : e.value); } catch (err) { /* ok */ } });
 }
+
+// se cambia il tipo di un gioco (dalla scheda) mosse e vantaggi cambiano: si ricreano i combattenti
+window.addEventListener('typechange', () => { fighters.clear(); });
 
 // ---- salvataggio ----
 let saveTimer = null;

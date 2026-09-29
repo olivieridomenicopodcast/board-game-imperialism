@@ -8,3 +8,4 @@
 - [x] Passo 6: lotta automatica (battle.js, data/moves.js, tools/simulate.js)
 - [x] Passo 7: schermata di lotta stile Game Boy (battle-ui.js, battle.css)
 - [x] Passo 8: campagne multiple, salvataggio automatico, sync GitHub (storage.js, sync.js, menu.js, dialog.js)
+- [ ] Correzioni di tipo fatte dalla scheda (salvate nel browser): esportale dal Dex (⬇ Esporta correzioni tipi) e portale in `data/type_overrides.json`.

@@ -77,3 +77,22 @@ button.danger,.dlg-btn.danger{border-color:#c0392b;color:#ff8a7a}
 .dlg-btn.primary{background:var(--gold);border-color:#7a5a10}
 #toasts{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:120;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none}
 .toast{background:#111c;color:#fff;border:1px solid var(--gold);border-radius:8px;padding:8px 14px;font-size:.88rem}
+
+/* ---- scheda del gioco ---- */
+.cardwin{width:min(560px,100%)}
+.chead{display:flex;gap:12px;align-items:flex-start;margin-bottom:8px}
+.chead img{width:96px;height:96px;object-fit:contain;background:#0002;border:2px solid #7a6a44;border-radius:6px;flex:none}
+.chead h3{margin:0 0 4px}
+.cardwin .dim{color:#6b5a38;font-size:.8rem;margin-top:2px}
+.cardwin .badge{display:inline-block;padding:2px 9px;border-radius:12px;color:#111;font-weight:600;font-size:.78rem;border:1px solid #0004}
+.csec{border-top:1px solid #7a6a4455;padding-top:6px;margin-top:8px}
+.csec h4{margin:0 0 4px;font-family:'Cinzel',serif;font-size:.95rem}
+.cardwin .bars{display:grid;grid-template-columns:34px 1fr 30px;gap:3px 8px;font-size:.78rem;align-items:center}
+.cardwin .bar{height:8px;background:#0003;border-radius:4px;overflow:hidden}.cardwin .bar i{display:block;height:100%;background:#a67c1a}
+.moves{margin:0;padding-left:18px;font-size:.86rem;line-height:1.5}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin:3px 0 6px}
+.kv{display:grid;grid-template-columns:auto 1fr auto 1fr;gap:2px 10px;font-size:.84rem}
+.cardwin .small{font-size:.8rem;margin-top:5px;display:block}
+.cardwin a{color:#7a4a00}
+.cardwin .dot{display:inline-block;width:.9em;height:.9em;border-radius:50%;vertical-align:-.1em;margin-right:4px;border:1px solid #0006}
+.dlg-btns{margin-top:10px}
