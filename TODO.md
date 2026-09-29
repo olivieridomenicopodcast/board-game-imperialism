@@ -12,3 +12,4 @@
 - [ ] Se cambi stat, tipi o mosse (anche dalla scheda), rilancia `node tools/balance.js 0.22` per rigenerare `data/balance.js` (bonus di bilanciamento).
 - [ ] Sul PC: `git config core.hooksPath .githooks` (una volta), così anche i tuoi commit incrementano il numero di build mostrato nel menù.
 - Hall of Fame: le statistiche partono dalle campagne create dalla build 34 in poi (campo `stats`); le vecchie non contano. Le copie di una campagna partono da statistiche vuote per non contare due volte.
+- Titoli: 👑n accanto al nome (titoli per quella dimensione di griglia), corona sopra la copertina/sprite per il campione in carica; i vincitori delle campagne precedenti di quella dimensione sono obbligati a partecipare (max 20% della mappa). Contano solo campagne con `stats` (build 34+).

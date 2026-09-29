@@ -65,6 +65,8 @@
       if (s.est) h('div', 'dim', ht, `Dati stimati: ${s.est.join(', ')}`);
       h('div', 'dim', ht, t.hint);
 
+      if (ctx && ctx.titles) h('div', 'dim', ht, `👑 ${ctx.titles} ${ctx.titles === 1 ? 'titolo' : 'titoli'} nelle campagne ${ctx.grid}×${ctx.grid}${ctx.champ ? ' — campione in carica' : ''}`);
+
       if (ctx) {
         const sc = section(box, 'In campagna');
         const dot = h('span', 'dot', sc); dot.style.background = ctx.color;

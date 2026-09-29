@@ -175,3 +175,7 @@ table.hall tbody tr{cursor:pointer}
 table.hall tbody tr:hover td{background:#f4ecd2}
 table.hall tbody tr:hover td.name{background:#f4ecd2}
 .dlg-msg{white-space:pre-line}
+
+/* corona del campione in carica sopra la copertina */
+.crown{position:absolute;transform:translate(-50%,-30%);font-size:calc(var(--s,2) * min(3.6vw, 20px) + 8px);line-height:1;pointer-events:none;z-index:3;filter:drop-shadow(0 1px 2px #000) drop-shadow(0 0 6px #ffd700);animation:crownbob 2.4s ease-in-out infinite}
+@keyframes crownbob{50%{transform:translate(-50%,-38%)}}

@@ -64,7 +64,7 @@
       if (left > 0 && (!r.narrowest || left < r.narrowest.left)) r.narrowest = { left, ...pair };
     }
     if (!st.done && info.alive === 1) {
-      st.done = true; st.winner = ids[W];
+      st.done = true; st.winner = ids[W]; st.doneAt = Date.now();
       win.survSum += 1; win.survN++;
     }
   }
@@ -75,13 +75,13 @@
     const rows = {}, rec = {};
     let n = 0;
     const row = id => rows[id] || (rows[id] = Object.assign(Object.fromEntries(SUM.concat(MAXK).map(k => [k, 0])),
-      { camps: 0, titles: 0, bestRun: 0, moves: {}, rivals: {} }));
+      { camps: 0, titles: 0, bestRun: 0, moves: {}, rivals: {}, bySize: {} }));
     for (const c of campaigns) {
       const st = c.stats;
       if (!st || !st.fights) continue;
       n++;
       for (const id of c.games) row(id).camps++;
-      if (st.winner) row(st.winner).titles++;
+      if (st.winner) { const r = row(st.winner), sz = c.size || Math.round(Math.sqrt(c.games.length)); r.titles++; r.bySize[sz] = (r.bySize[sz] || 0) + 1; }
       for (const [id, g] of Object.entries(st.games)) {
         const r = row(id);
         for (const k of SUM) r[k] += g[k] || 0;

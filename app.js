@@ -48,17 +48,21 @@ function parseKeep(str) {
 
 // Giochi per una griglia di n caselle: se ci stanno tutti, gli intoccabili e il resto a caso;
 // se la griglia è più piccola degli intoccabili, ne entrano n scelti a caso tra loro.
-function pickGames(n) {
+// I vincitori delle campagne precedenti di quella dimensione (forced) sono obbligati a partecipare, fino al 20% della mappa.
+function pickGames(n, forced = []) {
   const keep = parseKeep(window.KEEP || '');
-  const pinned = shuffle(window.GAMES.filter(g => keep.has(g.n)));
-  if (n <= pinned.length) return shuffle(pinned.slice(0, n));
-  const rest = shuffle(window.GAMES.filter(g => !keep.has(g.n)));
-  return shuffle(pinned.concat(rest.slice(0, n - pinned.length)));
+  const must = forced.slice(0, Math.max(1, Math.floor(n * 0.2)));
+  const mustIds = new Set(must.map(g => g.id));
+  const pinned = shuffle(window.GAMES.filter(g => keep.has(g.n) && !mustIds.has(g.id)));
+  const rest = shuffle(window.GAMES.filter(g => !keep.has(g.n) && !mustIds.has(g.id)));
+  const room = n - must.length;
+  const picked = room <= pinned.length ? pinned.slice(0, room) : pinned.concat(rest.slice(0, room - pinned.length));
+  return shuffle(must.concat(picked));
 }
 
 // Nuova campagna: sceglie i 225 giochi e i colori e la salva.
 function createCampaign(name, size = Engine.DEFAULT_SIZE) {
-  const g = pickGames(size * size);
+  const g = pickGames(size * size, Titles.forced(size).map(id => GAME_BY_ID[id]).filter(Boolean));
   return Store.create(name, g.map(x => x.id), assignColors(size));
 }
 
@@ -74,6 +78,7 @@ function load(c) {
   colors = c.colors;
   state = { owner: c.owner.slice(), alive: new Set(c.owner).size, turn: c.turn, wins: c.wins.slice() };
   selected = null;
+  Titles.refresh().then(() => { if (cur === c) { paint(); if (selected !== null) select(selected); } });
   lastBattle = null;
   battleLogEl.textContent = '';
   logEl.textContent = '';
@@ -117,12 +122,24 @@ function paint() {
     b.style.cssText = `left:${p.c * pct}%;top:${p.r * pct}%;width:${p.s * pct}%;height:${p.s * pct}%;--c:${colors[p.owner]};--s:${p.s}`;
     b.title = g.name; b.dataset.owner = p.owner;
     const img = document.createElement('img'); img.src = g.cover; img.alt = '';
-    const s = document.createElement('span'); s.textContent = g.name;
+    const tl = Titles.label(SIZE, g.id);
+    const s = document.createElement('span'); s.textContent = g.name + (tl ? ' ' + tl : '');
     b.append(img, s);
     b.onclick = () => select(p.owner);
     coversEl.appendChild(b);
+    if (Titles.isChamp(SIZE, g.id)) {          // campione in carica: corona sopra la copertina
+      const cr = document.createElement('div');
+      cr.className = 'crown'; cr.textContent = '👑'; cr.title = `Campione in carica ${SIZE}×${SIZE}`;
+      cr.style.cssText = `left:${(p.c + p.s / 2) * pct}%;top:${p.r * pct}%;--s:${p.s}`;
+      coversEl.appendChild(cr);
+    }
   }
   statsEl.textContent = `Giochi in vita: ${state.alive} / ${games.length} · Scontri: ${state.turn}`;
+}
+
+function titleText(id) {
+  const n = Titles.count(SIZE, id);
+  return n ? ` 👑${n}${Titles.isChamp(SIZE, id) ? ' campione in carica' : ''}` : '';
 }
 
 function prestigeText(o) {
@@ -138,10 +155,10 @@ function select(o) {
   const g = games[o];
   infoEl.textContent = '';
   const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = colors[o];
-  infoEl.append(dot, `#${g.n} ${g.name} — ${STATS[g.id].t} — territorio: ${size} caselle — scontri vinti: ${state.wins[o]}${prestigeText(o)} `);
+  infoEl.append(dot, `#${g.n} ${g.name}${titleText(g.id)} — ${STATS[g.id].t} — territorio: ${size} caselle — scontri vinti: ${state.wins[o]}${prestigeText(o)} `);
   const cardBtn = document.createElement('button');
   cardBtn.type = 'button'; cardBtn.className = 'small'; cardBtn.textContent = '🃏 Scheda';
-  cardBtn.onclick = () => Card.show(g.id, { territory: size, wins: state.wins[o], color: colors[o], prestige: Engine.prestige(state, o) });
+  cardBtn.onclick = () => Card.show(g.id, { territory: size, wins: state.wins[o], color: colors[o], prestige: Engine.prestige(state, o), titles: Titles.count(SIZE, g.id), champ: Titles.isChamp(SIZE, g.id), grid: SIZE });
   infoEl.appendChild(cardBtn);
   paint();
 }
@@ -164,6 +181,7 @@ function resolve(attacker, defender) {
   if (!realBattle.checked) return Engine.coinFlip(attacker, defender);
   const fa = Battle.makeFighter(games[attacker], STATS[games[attacker].id], pa);
   const fd = Battle.makeFighter(games[defender], STATS[games[defender].id], pd);
+  for (const [o, f] of [[attacker, fa], [defender, fd]]) { f.titles = Titles.count(SIZE, games[o].id); f.champ = Titles.isChamp(SIZE, games[o].id); }
   lastFighters = { [attacker]: fa, [defender]: fd };
   lastBattle = Battle.fight(fa, fd);
   return lastBattle.winner === 0 ? attacker : defender;
@@ -257,9 +275,9 @@ function showBanner(label, owner, kind, withButton) {
   const g = games[owner], t = TYPES.find(x => x.id === STATS[g.id].t);
   $('bannerImg').src = g.cover;
   $('bannerLabel').textContent = label;
-  $('bannerName').textContent = g.name;
+  $('bannerName').textContent = g.name + (Titles.label(SIZE, g.id) ? ' ' + Titles.label(SIZE, g.id) : '');
   const pr = lastPrestige[owner];
-  $('bannerType').textContent = `${t.icon} ${t.id}` + (pr > 0.0005 ? `  ·  ⭐ Prestigio +${Math.round(pr * 100)}%` : '');
+  $('bannerType').textContent = `${t.icon} ${t.id}` + (pr > 0.0005 ? `  ·  ⭐ Prestigio +${Math.round(pr * 100)}%` : '') + (Titles.isChamp(SIZE, g.id) ? '  ·  👑 Campione in carica' : '');
   bannerEl.className = 'banner ' + kind;
   bannerEl.style.setProperty('--c', colors[owner]);
   $('bannerGo').hidden = !withButton;
@@ -358,8 +376,13 @@ async function fight() {
   busy = false;
   paint(); showBattle();
   Sfx.play('conquer');
-  if (state.alive === 1) { finish(); setTimeout(() => Sfx.play('victory'), 500); } else { readyMsg(); refreshButtons(); }
+  if (state.alive === 1) { finish(); updateTitles(); setTimeout(() => Sfx.play('victory'), 500); } else { readyMsg(); refreshButtons(); }
   return ev;
+}
+
+// a campagna finita il vincitore riceve il titolo: si salva e si ricalcolano corona e numeri
+function updateTitles() {
+  return saveNow().then(() => Titles.refresh()).then(() => { if (cur) { paint(); if (selected !== null) select(selected); } });
 }
 
 function readyMsg() {
@@ -411,7 +434,7 @@ allBtn.onclick = () => {
   if (busy) return;
   stop();
   while (state.alive > 1) { const ev = doStep(); if (!ev) break; addLog(ev); }
-  paint(); finish(); Sfx.play('victory');
+  paint(); finish(); Sfx.play('victory'); updateTitles();
 };
 // opzioni della barra (velocità, lotta, ecc.) ricordate tra una sessione e l'altra
 for (const id of ['speedSel', 'modeSel', 'realBattle', 'showBattles', 'drawAnim', 'drawSpeed', 'fxAnim', 'battleMode', 'battleSpeed']) {
@@ -470,6 +493,7 @@ $('restartBtn').onclick = async () => {
     { label: 'Nuova mappa', value: 'new', kind: 'danger' },
   ], 'Ricomincia');
   if (!r) return;
+  await Titles.refresh();
   const fresh = r === 'new' ? createCampaign(cur.name, SIZE) : Store.create(cur.name, cur.games, cur.colors);
   fresh.id = cur.id; fresh.created = cur.created;
   load(fresh);

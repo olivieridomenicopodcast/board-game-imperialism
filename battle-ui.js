@@ -28,6 +28,8 @@
       const plat = el('div', 'plat', sp);
       const img = el('img', '', sp);
       img.alt = '';
+      const crown = el('div', 'champcrown', sp);
+      crown.textContent = '👑'; crown.hidden = true;
       const condfx = el('span', 'condfx', sp);
       const box = el('div', 'box b' + i, gb);
       const top = el('div', 'bname', box);
@@ -41,7 +43,7 @@
       const fill = el('div', 'fill', track);
       const num = el('div', 'hpnum', box);
       const prest = el('div', 'prest', box);
-      ui.side[i] = { sp, plat, img, condfx, box, nm, ty, tag, fill, num, prest, max: 1, cur: 1 };
+      ui.side[i] = { sp, crown, plat, img, condfx, box, nm, ty, tag, fill, num, prest, max: 1, cur: 1 };
     }
     ui.fx = el('div', 'fx', gb);
     ui.fxApi = root.BattleFX.create({ gb, layer: ui.fx, sprites: [ui.side[0].img, ui.side[1].img], speed: () => speed, skipping: () => skipping });
@@ -141,7 +143,8 @@
 
   function fill(i, f, color, cover) {
     const s = ui.side[i], t = (root.TYPES || []).find(x => x.id === f.type) || { icon: '', color: '#888' };
-    s.nm.textContent = f.name;
+    s.nm.textContent = f.name + (f.titles ? ` 👑${f.titles}` : '');
+    s.crown.hidden = !f.champ;
     s.ty.textContent = `${t.icon} ${f.type}`;
     s.ty.style.background = t.color;
     s.max = f.maxHp;

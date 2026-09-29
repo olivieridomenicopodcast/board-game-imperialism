@@ -44,3 +44,7 @@
 @keyframes bobc{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-1.2cqw) rotate(6deg)}}
 .prest{margin-top:.6cqw;font-size:1.5cqw;color:#a06a00}
 .prest:empty{display:none}
+
+.champcrown{position:absolute;left:50%;bottom:88%;transform:translateX(-50%);font-size:9cqw;line-height:1;z-index:4;pointer-events:none;filter:drop-shadow(0 .4cqw .4cqw #000) drop-shadow(0 0 1.4cqw #ffd700);animation:crownbob2 2.2s ease-in-out infinite}
+.champcrown[hidden]{display:none}
+@keyframes crownbob2{50%{transform:translateX(-50%) translateY(-6%)}}

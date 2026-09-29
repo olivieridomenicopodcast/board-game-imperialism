@@ -133,7 +133,10 @@
       { name: 'size', label: 'Dimensione della mappa', type: 'select', value: '15', options, hintFn: sizeHint },
     ], 'Crea');
     if (!r || !r.name.trim()) return;
+    await Titles.refresh();
     const c = Game.createCampaign(r.name.trim(), +r.size);
+    const champs = Titles.forced(+r.size).length;
+    if (champs) Dialog.toast(`👑 ${champs} ${champs === 1 ? 'campione' : 'campioni'} ${r.size}×${r.size} già in gara`, 4000);
     await Store.put(c);
     Game.open(c);
   };

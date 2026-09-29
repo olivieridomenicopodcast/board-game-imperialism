@@ -118,7 +118,7 @@
     const moves = top(r.moves, 3).map(([m, k]) => `${m} (${k})`).join(', ') || '—';
     const riv = top(r.rivals, 3).map(([id, k]) => `${gname(id)} (${k})`).join(', ') || '—';
     const txt = [
-      `Tipo: ${x.type} · campagne: ${r.camps} · titoli: ${r.titles}`,
+      `Tipo: ${x.type} · campagne: ${r.camps} · titoli: ${r.titles}${r.titles ? ' (' + Object.entries(r.bySize).sort((a, b) => a[0] - b[0]).map(([s, k]) => `${s}×${s}: ${k}`).join(', ') + ')' : ''}`,
       `Lotte: ${r.fights} — vinte ${r.wins}, perse ${r.losses} (${pct(per(r.wins, r.fights))})`,
       `Danni fatti ${n0(r.dmgDone)} · subiti ${n0(r.dmgTaken)} · critici ${r.crits} · superefficaci ${r.supers}`,
       `Assorbiti ${r.absorbed} · territorio max ${r.maxTerr} · prestigio max +${(r.maxPrestige * 100).toFixed(1)}%`,
