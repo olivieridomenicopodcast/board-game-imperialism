@@ -7,4 +7,4 @@
 - [ ] Rivedere la tabella dei vantaggi tra tipi (`data/types.js`) e le assegnazioni dei tipi (`data/type_overrides.json`).
 - [x] Passo 6: lotta automatica (battle.js, data/moves.js, tools/simulate.js)
 - [x] Passo 7: schermata di lotta stile Game Boy (battle-ui.js, battle.css)
-- [ ] Passo 8: salvataggio + sync con token GitHub, velocità, storico
+- [x] Passo 8: campagne multiple, salvataggio automatico, sync GitHub (storage.js, sync.js, menu.js, dialog.js)

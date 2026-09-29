@@ -1,17 +1,21 @@
 'use strict';
 // Motore di conquista + lotta automatica (battle.js). Senza "Lotta vera" l'esito è 50/50.
-// Selezione: intoccabili (data/intoccabili.js) + giochi a caso. Colori casuali.
+// Partita (una campagna alla volta). Selezione: intoccabili (data/intoccabili.js) + giochi a caso.
+// Le campagne si salvano da sole (storage.js) e si gestiscono dal menu (menu.js).
 const { SIZE } = Engine;
 const CELLS = SIZE * SIZE;
 const PALETTE = ['#c0392b','#2980b9','#27ae60','#f39c12','#8e44ad','#16a085','#d35400','#e84393','#7f8c8d','#2c3e50'];
 const DIR_NAME = { N: 'nord', S: 'sud', E: 'est', O: 'ovest' };
 const LOG_MAX = 300;
+const GAME_BY_ID = Object.fromEntries(window.GAMES.map(g => [g.id, g]));
 
 const $ = id => document.getElementById(id);
 const gridEl = $('grid'), coversEl = $('covers'), infoEl = $('info'), statsEl = $('stats'), logEl = $('log');
 const playBtn = $('playBtn'), stepBtn = $('stepBtn'), allBtn = $('allBtn'), speedSel = $('speedSel'), modeSel = $('modeSel'), realBattle = $('realBattle'), showBattles = $('showBattles'), battleSpeed = $('battleSpeed'), battleMode = $('battleMode'), battleLogEl = $('battleLog');
+const menuEl = $('menu'), gameViewEl = $('gameView'), nameBtn = $('nameBtn'), saveStateEl = $('saveState');
 
 let games = [], colors = [], state = null, cellEls = [], timer = null, selected = null;
+let cur = null;   // campagna aperta
 
 function shuffle(a) {
   for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
@@ -49,21 +53,33 @@ function pickGames() {
   return shuffle(pinned.concat(rest).slice(0, Math.max(CELLS, pinned.length)).slice(0, CELLS));
 }
 
-function newRun() {
+// Nuova campagna: sceglie i 225 giochi e i colori e la salva.
+function createCampaign(name) {
+  const g = pickGames();
+  return Store.create(name, g.map(x => x.id), assignColors());
+}
+
+// Carica una campagna nella schermata di gioco.
+function load(c) {
   stop();
   if (BattleUI.active) BattleUI.skip();
-  games = pickGames();
-  colors = assignColors();
-  state = Engine.create(CELLS);
+  cur = c;
+  games = c.games.map(id => GAME_BY_ID[id]);
+  colors = c.colors;
+  state = { owner: c.owner.slice(), alive: new Set(c.owner).size, turn: c.turn, wins: c.wins.slice() };
   selected = null;
   fighters.clear();
   lastBattle = null;
   battleLogEl.textContent = '';
   logEl.textContent = '';
+  for (const ev of c.log) addLog(ev);
+  nameBtn.textContent = '✏ ' + c.name;
+  saveStateEl.textContent = '';
   buildGrid();
   paint();
   setButtons(true);
   infoEl.textContent = 'Tocca una casella per vedere il gioco.';
+  if (state.alive === 1) finish();
 }
 
 function buildGrid() {
@@ -148,6 +164,8 @@ function doStep() {
   if (!ev) return null;
   ev.rounds = lastBattle && lastBattle.rounds;
   addLog(ev);
+  cur.log.push({ turn: ev.turn, attacker: ev.attacker, defender: ev.defender, dir: ev.dir, winner: ev.winner, gained: ev.gained, rounds: ev.rounds || 0 });
+  scheduleSave();
   return ev;
 }
 
@@ -166,6 +184,7 @@ function finish() {
   infoEl.textContent = '';
   const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = colors[w];
   infoEl.append(dot, `🏆 ${games[w].name} domina la mappa dopo ${state.turn} scontri!`);
+  scheduleSave();
 }
 
 function setButtons(active) { playBtn.disabled = stepBtn.disabled = allBtn.disabled = !active; }
@@ -207,7 +226,94 @@ allBtn.onclick = () => {
   while (state.alive > 1 && doStep()) { /* esegue tutti gli scontri senza schermata */ }
   paint(); finish();
 };
-try { battleMode.value = localStorage.getItem('bgi.battleMode') || 'manual'; } catch (e) { /* localStorage non disponibile */ }
-battleMode.onchange = () => { try { localStorage.setItem('bgi.battleMode', battleMode.value); } catch (e) { /* ok */ } };
-$('shuffleBtn').onclick = newRun;
-newRun();
+// opzioni della barra (velocità, lotta, ecc.) ricordate tra una sessione e l'altra
+for (const id of ['speedSel', 'modeSel', 'realBattle', 'showBattles', 'battleMode', 'battleSpeed']) {
+  const e = $(id), key = 'bgi.opt.' + id, box = e.type === 'checkbox';
+  try {
+    const v = localStorage.getItem(key);
+    if (v !== null) { if (box) e.checked = v === '1'; else e.value = v; }
+  } catch (err) { /* localStorage non disponibile */ }
+  e.addEventListener('change', () => { try { localStorage.setItem(key, box ? (e.checked ? '1' : '0') : e.value); } catch (err) { /* ok */ } });
+}
+
+// ---- salvataggio ----
+let saveTimer = null;
+function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 500); }
+
+async function saveNow(manual) {
+  clearTimeout(saveTimer); saveTimer = null;
+  if (!cur) return;
+  cur.owner = state.owner.slice();
+  cur.wins = state.wins.slice();
+  cur.turn = state.turn;
+  cur.winner = state.alive === 1 ? games[state.owner[0]].id : null;
+  cur.updated = Date.now();
+  try {
+    await Store.put(cur);
+    Store.setLast(cur.id);
+    const t = new Date(cur.updated).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    saveStateEl.textContent = `Salvato ✓ ${t}`;
+    if (manual === true) Dialog.toast('Partita salvata');
+  } catch (e) {
+    saveStateEl.textContent = '⚠ Salvataggio non riuscito';
+    Dialog.toast('Salvataggio non riuscito: ' + (e && e.message || e), 5000);
+  }
+}
+
+function flushSave() { if (saveTimer) saveNow(); }
+document.addEventListener('visibilitychange', () => { if (document.hidden) flushSave(); });
+window.addEventListener('pagehide', flushSave);
+
+// ---- barra della campagna ----
+$('saveBtn').onclick = () => saveNow(true);
+
+nameBtn.onclick = async () => {
+  const n = await Dialog.prompt('Nome della campagna', cur.name, 'Rinomina');
+  if (!n) return;
+  cur.name = n;
+  nameBtn.textContent = '✏ ' + n;
+  saveNow();
+};
+
+$('cloudBtn').onclick = async () => {
+  if (!(await Sync.ensureConfigured())) return;
+  await saveNow();
+  try { if (await Sync.push(cur)) Dialog.toast('Caricata su GitHub ✓'); }
+  catch (e) { Dialog.toast('GitHub: ' + e.message, 5000); }
+};
+
+$('restartBtn').onclick = async () => {
+  const r = await Dialog.choose('Ricominciare da zero? I progressi di questa campagna andranno persi.', [
+    { label: 'Annulla', value: null },
+    { label: 'Stessa mappa', value: 'same', kind: 'danger' },
+    { label: 'Nuova mappa', value: 'new', kind: 'danger' },
+  ], 'Ricomincia');
+  if (!r) return;
+  const fresh = r === 'new' ? createCampaign(cur.name) : Store.create(cur.name, cur.games, cur.colors);
+  fresh.id = cur.id; fresh.created = cur.created;
+  load(fresh);
+  await saveNow();
+};
+
+$('menuBtn').onclick = () => Game.leave();
+
+// ---- API verso il menu ----
+window.Game = {
+  createCampaign,
+  open(c) {
+    load(c);
+    Store.setLast(c.id);
+    menuEl.hidden = true;
+    gameViewEl.hidden = false;
+    window.scrollTo(0, 0);
+  },
+  async leave() {
+    stop();
+    if (BattleUI.active) BattleUI.skip();
+    await saveNow();
+    gameViewEl.hidden = true;
+    menuEl.hidden = false;
+    await Menu.render();
+  },
+  get current() { return cur; },
+};

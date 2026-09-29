@@ -11,45 +11,78 @@
 <link rel="stylesheet" href="battle.css">
 </head>
 <body>
-<header>
-  <h1>Board Game Imperialism</h1>
-  <p class="sub">225 giochi, un solo vincitore.</p>
-</header>
-<main>
-  <section class="toolbar">
-    <button id="playBtn" type="button">▶ Avvia</button>
-    <button id="stepBtn" type="button">⏭ Turno</button>
-    <button id="allBtn" type="button">⏩ Simula tutto</button>
-    <label class="speed">Velocità
-      <select id="speedSel"><option value="700">1×</option><option value="250" selected>3×</option><option value="60">10×</option><option value="10">Max</option></select>
-    </label>
-    <label class="speed">Sorteggio
-      <select id="modeSel"><option value="game" selected>Per gioco</option><option value="edge">Per confine</option></select>
-    </label>
-    <label class="speed"><input id="realBattle" type="checkbox" checked> Lotta vera</label>
-    <label class="speed"><input id="showBattles" type="checkbox" checked> Vedi le lotte</label>
-    <label class="speed">Testo lotta
-      <select id="battleMode"><option value="manual" selected>Manuale (clic)</option><option value="auto">Automatico</option></select>
-    </label>
-    <label class="speed">Velocità lotta
-      <select id="battleSpeed"><option value="1">Normale</option><option value="2" selected>Veloce</option><option value="4">Turbo</option></select>
-    </label>
-    <button id="shuffleBtn" type="button" class="ghost">🎲 Rimescola mappa</button>
-  </section>
-  <div id="stats" class="stats"></div>
-  <div id="board" class="board"><div id="grid" class="grid" role="grid" aria-label="Mappa 15 per 15"></div><div id="covers" class="covers"></div></div>
-  <aside id="info" class="info">Tocca una casella per vedere il gioco.</aside>
-  <section class="logwrap"><h2>Ultimo scontro</h2><ol id="battleLog" class="log battle"></ol></section>
-  <section class="logwrap"><h2>Cronologia</h2><ol id="log" class="log"></ol></section>
-</main>
+
+<!-- MENU PRINCIPALE -->
+<div id="menu">
+  <header>
+    <h1>Board Game Imperialism</h1>
+    <p class="sub">225 giochi, un solo vincitore.</p>
+  </header>
+  <main>
+    <section class="toolbar">
+      <button id="continueBtn" type="button">▶ Continua</button>
+      <button id="newBtn" type="button">➕ Nuova campagna</button>
+      <button id="importBtn" type="button" class="ghost">📂 Importa file</button>
+      <button id="pullBtn" type="button" class="ghost">☁ Scarica da GitHub</button>
+      <button id="syncCfgBtn" type="button" class="ghost">⚙ GitHub</button>
+      <input id="importFile" type="file" accept=".json,application/json" hidden>
+    </section>
+    <div id="campaigns" class="campaigns"></div>
+    <p class="hint" id="storageNote"></p>
+    <p class="hint"><a href="dex.html">Dex dei giochi</a></p>
+  </main>
+</div>
+
+<!-- PARTITA -->
+<div id="gameView" hidden>
+  <main>
+    <section class="topbar">
+      <button id="menuBtn" type="button" class="ghost">☰ Menu</button>
+      <button id="nameBtn" type="button" class="namebtn" title="Rinomina campagna"></button>
+      <button id="saveBtn" type="button">💾 Salva</button>
+      <button id="cloudBtn" type="button" class="ghost">☁ GitHub</button>
+      <button id="restartBtn" type="button" class="ghost">↺ Ricomincia</button>
+      <span id="saveState" class="stats"></span>
+    </section>
+    <section class="toolbar">
+      <button id="playBtn" type="button">▶ Avvia</button>
+      <button id="stepBtn" type="button">⏭ Turno</button>
+      <button id="allBtn" type="button">⏩ Simula tutto</button>
+      <label class="speed">Velocità
+        <select id="speedSel"><option value="700">1×</option><option value="250" selected>3×</option><option value="60">10×</option><option value="10">Max</option></select>
+      </label>
+      <label class="speed">Sorteggio
+        <select id="modeSel"><option value="game" selected>Per gioco</option><option value="edge">Per confine</option></select>
+      </label>
+      <label class="speed"><input id="realBattle" type="checkbox" checked> Lotta vera</label>
+      <label class="speed"><input id="showBattles" type="checkbox" checked> Vedi le lotte</label>
+      <label class="speed">Testo lotta
+        <select id="battleMode"><option value="manual" selected>Manuale (clic)</option><option value="auto">Automatico</option></select>
+      </label>
+      <label class="speed">Velocità lotta
+        <select id="battleSpeed"><option value="1">Normale</option><option value="2" selected>Veloce</option><option value="4">Turbo</option></select>
+      </label>
+    </section>
+    <div id="stats" class="stats"></div>
+    <div id="board" class="board"><div id="grid" class="grid" role="grid" aria-label="Mappa 15 per 15"></div><div id="covers" class="covers"></div></div>
+    <aside id="info" class="info">Tocca una casella per vedere il gioco.</aside>
+    <section class="logwrap"><h2>Ultimo scontro</h2><ol id="battleLog" class="log battle"></ol></section>
+    <section class="logwrap"><h2>Cronologia</h2><ol id="log" class="log"></ol></section>
+  </main>
+</div>
+
 <script src="data/games.js"></script>
 <script src="data/intoccabili.js"></script>
 <script src="data/stats.js"></script>
 <script src="data/types.js"></script>
 <script src="data/moves.js"></script>
+<script src="engine.js"></script>
 <script src="battle.js"></script>
 <script src="battle-ui.js"></script>
-<script src="engine.js"></script>
+<script src="dialog.js"></script>
+<script src="storage.js"></script>
+<script src="sync.js"></script>
 <script src="app.js"></script>
+<script src="menu.js"></script>
 </body>
 </html>
