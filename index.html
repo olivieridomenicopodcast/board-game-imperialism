@@ -22,6 +22,7 @@
     <section class="toolbar">
       <button id="continueBtn" type="button">▶ Continua</button>
       <button id="newBtn" type="button">➕ Nuova campagna</button>
+      <button id="hallBtn" type="button">🏆 Hall of Fame</button>
       <button id="importBtn" type="button" class="ghost">📂 Importa file</button>
       <input id="importFile" type="file" accept=".json,application/json" hidden>
     </section>
@@ -36,6 +37,27 @@
     <p class="hint"><a href="dex.html">Dex dei giochi</a></p>
   </main>
   <div id="buildTag" class="buildtag" title="Numero di build: aumenta a ogni aggiornamento"></div>
+</div>
+
+<!-- HALL OF FAME -->
+<div id="hallView" hidden>
+  <main>
+    <section class="topbar">
+      <button id="hallBack" type="button" class="ghost">☰ Menu</button>
+      <h2 class="hall-title">🏆 Hall of Fame</h2>
+      <span id="hallInfo" class="stats"></span>
+    </section>
+    <section class="hall-filters">
+      <div class="seg" id="hallMode"><button type="button" data-m="games" class="on">Giochi</button><button type="button" data-m="types">Tipi</button></div>
+      <input id="hallSearch" type="search" placeholder="Cerca un gioco…" autocomplete="off">
+      <select id="hallType"><option value="">Tutti i tipi</option></select>
+      <label class="speed">Almeno <input id="hallMin" type="number" min="0" value="1"> lotte</label>
+    </section>
+    <div id="hallPodium" class="podium"></div>
+    <div id="hallRecords" class="records"></div>
+    <div class="tablewrap"><table id="hallTable" class="hall"></table></div>
+    <p class="hint" id="hallNote"></p>
+  </main>
 </div>
 
 <!-- PARTITA -->
@@ -108,6 +130,8 @@
 <script src="engine.js"></script>
 <script src="overrides.js"></script>
 <script src="battle.js"></script>
+<script src="stats.js"></script>
+<script src="hall.js"></script>
 <script src="sfx.js"></script>
 <script src="battle-fx.js"></script>
 <script src="battle-ui.js"></script>

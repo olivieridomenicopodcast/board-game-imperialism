@@ -53,7 +53,7 @@
         { label: 'Sovrascrivi', value: 'over', kind: 'danger' },
       ], 'Campagna già presente');
       if (!r) return false;
-      if (r === 'copy') { c = { ...c, id: Store.uid(), name: c.name + ' (copia)' }; }
+      if (r === 'copy') { c = { ...c, id: Store.uid(), name: c.name + ' (copia)', stats: c.stats ? Stats.blank() : undefined }; }
     }
     await Store.put(c);
     return true;
@@ -99,6 +99,7 @@
       btn('⧉', 'Duplica (ottimo per provare strade diverse)', async () => {
         const copy = JSON.parse(JSON.stringify(c));
         copy.id = Store.uid(); copy.name = c.name + ' (copia)'; copy.created = copy.updated = Date.now();
+        if (copy.stats) copy.stats = Stats.blank();   // la copia parte da zero: così le sfide già giocate non si contano due volte
         await Store.put(copy); render(); Dialog.toast('Campagna duplicata');
       });
       btn('⬇', 'Esporta in un file', () => download(`bgi-${safeName(c.name)}.json`, JSON.stringify(c)));

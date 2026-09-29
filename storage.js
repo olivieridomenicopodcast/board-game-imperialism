@@ -63,7 +63,7 @@
     create(name, gameIds, colors) {
       const now = Date.now();
       return { v: VERSION, id: uid(), name, created: now, updated: now, size: Math.round(Math.sqrt(gameIds.length)), games: gameIds, colors,
-               owner: gameIds.map((_, i) => i), wins: gameIds.map(() => 0), turn: 0, log: [], winner: null };
+               owner: gameIds.map((_, i) => i), wins: gameIds.map(() => 0), turn: 0, log: [], winner: null, stats: root.Stats ? root.Stats.blank() : undefined };
     },
 
     // Controlla che un oggetto (da file o da GitHub) sia una campagna valida.

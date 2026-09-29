@@ -187,6 +187,8 @@ function doStep() {
   if (!ev) return null;
   ev.rounds = lastBattle && lastBattle.rounds;
   cur.log.push({ turn: ev.turn, attacker: ev.attacker, defender: ev.defender, dir: ev.dir, winner: ev.winner, gained: ev.gained, rounds: ev.rounds || 0 });
+  Stats.record(cur, { ev, ids: games.map(g => g.id), battle: lastBattle, fighters: lastFighters, prestige: lastPrestige,
+                      terr: Engine.territory(state, ev.winner), total: games.length, alive: state.alive });
   scheduleSave();
   return ev;
 }
