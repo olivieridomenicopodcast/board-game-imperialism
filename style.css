@@ -141,3 +141,8 @@ button.danger,.dlg-btn.danger{border-color:#c0392b;color:#ff8a7a}
 
 .dlg-field select{display:block;width:100%;margin-top:4px;font:inherit;padding:7px 9px;border:2px solid #7a6a44;border-radius:6px;background:#fffdf5;color:var(--ink)}
 .dlg-live{color:#4a3a1a !important;font-weight:600 !important}
+
+/* musica: pulsante muto + volume */
+.musicbar{position:fixed;right:10px;bottom:6px;display:flex;align-items:center;gap:6px;z-index:60;background:rgba(255,253,245,.9);border:2px solid #7a6a44;border-radius:8px;padding:2px 8px}
+.musicbar .iconbtn{padding:2px 6px}
+.musicbar input{width:80px;accent-color:#7a6a44}
