@@ -47,6 +47,10 @@
     const skip = el('button', 'skipbtn', gb);
     skip.type = 'button'; skip.textContent = 'Salta ▶▶';
     skip.onclick = () => api.skip();
+    const stopBtn = el('button', 'skipbtn stopbtn', gb);
+    stopBtn.type = 'button'; stopBtn.textContent = '⏸ Ferma auto';
+    stopBtn.onclick = () => { if (ui.onStop) ui.onStop(); stopBtn.hidden = true; };
+    ui.stopBtn = stopBtn;
     gb.addEventListener('click', e => { if (e.target !== skip) onInput(); });
     document.addEventListener('keydown', e => {
       if (ui.root.classList.contains('hidden')) return;
@@ -141,8 +145,9 @@
   }
 
   const api = {
-    async play({ a, b, battle, speed: sp = 1, manual: man = true }) {
+    async play({ a, b, battle, speed: sp = 1, manual: man = true, stop = null }) {
       if (!ui) build();
+      ui.onStop = stop; ui.stopBtn.hidden = !stop;
       skipping = false; speed = sp; manual = man; mode = 'idle';
       fill(0, a.fighter, a.color, a.cover);
       fill(1, b.fighter, b.color, b.cover);

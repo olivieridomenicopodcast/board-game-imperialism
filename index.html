@@ -45,16 +45,17 @@
       <span id="saveState" class="stats"></span>
     </section>
     <section class="toolbar">
-      <button id="playBtn" type="button">▶ Avvia</button>
-      <button id="stepBtn" type="button">⏭ Turno</button>
-      <button id="allBtn" type="button">⏩ Simula tutto</button>
-      <label class="speed">Velocità
-        <select id="speedSel"><option value="700">1×</option><option value="250" selected>3×</option><option value="60">10×</option><option value="10">Max</option></select>
+      <button id="stepBtn" type="button">▶ Prossima sfida</button>
+      <button id="playBtn" type="button" class="ghost">🔁 Auto</button>
+      <button id="allBtn" type="button" class="ghost">⏩ Simula tutto</button>
+      <label class="speed">Pausa tra sfide (auto)
+        <select id="speedSel"><option value="3000">3 s</option><option value="1500">1,5 s</option><option value="700" selected>0,7 s</option><option value="10">Nessuna</option></select>
       </label>
       <label class="speed">Sorteggio
         <select id="modeSel"><option value="game" selected>Per gioco</option><option value="edge">Per confine</option></select>
       </label>
       <label class="speed"><input id="realBattle" type="checkbox" checked> Lotta vera</label>
+      <label class="speed"><input id="drawAnim" type="checkbox" checked> Animazione sorteggio</label>
       <label class="speed"><input id="showBattles" type="checkbox" checked> Vedi le lotte</label>
       <label class="speed">Testo lotta
         <select id="battleMode"><option value="manual" selected>Manuale (clic)</option><option value="auto">Automatico</option></select>
@@ -64,7 +65,14 @@
       </label>
     </section>
     <div id="stats" class="stats"></div>
-    <div id="board" class="board"><div id="grid" class="grid" role="grid" aria-label="Mappa 15 per 15"></div><div id="covers" class="covers"></div></div>
+    <div id="hud" class="hud" hidden>
+      <div id="hudMain" class="hudmain"></div>
+      <div id="compass" class="compass"><span data-d="N">▲ N</span><span data-d="E">▶ E</span><span data-d="S">▼ S</span><span data-d="O">◀ O</span></div>
+      <button id="hudSkip" type="button" class="small">⏭ Salta</button>
+    </div>
+    <div id="board" class="board"><div id="grid" class="grid" role="grid" aria-label="Mappa 15 per 15"></div><div id="covers" class="covers"></div>
+      <svg id="arrow" class="arrowsvg" viewBox="0 0 15 15" preserveAspectRatio="none" hidden></svg>
+    </div>
     <aside id="info" class="info">Tocca una casella per vedere il gioco.</aside>
     <section class="logwrap"><h2>Ultimo scontro</h2><ol id="battleLog" class="log battle"></ol></section>
     <section class="logwrap"><h2>Cronologia</h2><ol id="log" class="log"></ol></section>

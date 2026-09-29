@@ -31,3 +31,6 @@
 .arrow{position:absolute;right:3.4cqw;bottom:2.2cqw;font-size:2.4cqw;visibility:hidden}
 .arrow::before{content:'▼'}
 .skipbtn{position:absolute;right:2cqw;top:1.2cqw;font:inherit;font-size:1.5cqw;background:#fffbe8;color:var(--ink);border:.3cqw solid var(--ink);border-radius:.8cqw;padding:.7cqw 1.1cqw;cursor:pointer}
+
+.stopbtn{right:auto;left:2cqw}
+.stopbtn[hidden]{display:none}

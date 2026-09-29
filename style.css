@@ -96,3 +96,20 @@ button.danger,.dlg-btn.danger{border-color:#c0392b;color:#ff8a7a}
 .cardwin a{color:#7a4a00}
 .cardwin .dot{display:inline-block;width:.9em;height:.9em;border-radius:50%;vertical-align:-.1em;margin-right:4px;border:1px solid #0006}
 .dlg-btns{margin-top:10px}
+
+/* ---- sorteggio animato sulla mappa ---- */
+.hud{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 14px;min-height:58px;margin:8px 0;
+  background:rgba(15,10,5,.92);border:2px solid var(--gold);border-radius:10px;padding:8px 14px;box-shadow:0 4px 18px #0008}
+.hud[hidden]{display:flex !important;visibility:hidden}
+.hudmain{font-weight:600;font-size:.95rem;color:var(--parch)}
+.compass{display:none;gap:6px}
+.compass.lit{display:flex}
+.compass span{padding:4px 9px;border:2px solid #7a6a44;border-radius:6px;color:#a8946a;font-weight:600;font-size:.85rem}
+.compass span.on{background:#ffe14d;color:#111;border-color:#fff}
+.cover.pick{outline:4px solid #ffe14d;box-shadow:0 0 0 2px #000,0 0 22px 8px #ffe14d;z-index:4}
+.cover.target{outline:4px solid #ff4d4d;box-shadow:0 0 0 2px #000,0 0 22px 8px #ff4d4d;z-index:4}
+.arrowsvg{position:absolute;inset:4px;width:calc(100% - 8px);height:calc(100% - 8px);pointer-events:none;z-index:6;overflow:visible}
+.arrowsvg[hidden]{display:none}
+.arrowsvg .a-shadow{stroke:#000;fill:none}
+.arrowsvg .a-main{stroke:#ffe14d;fill:none}
+.arrowsvg .a-head{fill:#ffe14d;stroke:#000;stroke-width:.08;stroke-linejoin:round}

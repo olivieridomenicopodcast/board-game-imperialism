@@ -11,11 +11,13 @@ const GAME_BY_ID = Object.fromEntries(window.GAMES.map(g => [g.id, g]));
 
 const $ = id => document.getElementById(id);
 const gridEl = $('grid'), coversEl = $('covers'), infoEl = $('info'), statsEl = $('stats'), logEl = $('log');
-const playBtn = $('playBtn'), stepBtn = $('stepBtn'), allBtn = $('allBtn'), speedSel = $('speedSel'), modeSel = $('modeSel'), realBattle = $('realBattle'), showBattles = $('showBattles'), battleSpeed = $('battleSpeed'), battleMode = $('battleMode'), battleLogEl = $('battleLog');
+const playBtn = $('playBtn'), stepBtn = $('stepBtn'), allBtn = $('allBtn'), speedSel = $('speedSel'), modeSel = $('modeSel'), realBattle = $('realBattle'), showBattles = $('showBattles'), drawAnim = $('drawAnim'), battleSpeed = $('battleSpeed'), battleMode = $('battleMode'), battleLogEl = $('battleLog');
 const menuEl = $('menu'), gameViewEl = $('gameView'), nameBtn = $('nameBtn'), saveStateEl = $('saveState');
 
 let games = [], colors = [], state = null, cellEls = [], timer = null, selected = null;
 let cur = null;   // campagna aperta
+let placementsNow = [];   // posizione delle copertine sulla mappa attualmente disegnata
+let running = false, busy = false, runId = 0, drawSkip = false;
 
 function shuffle(a) {
   for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
@@ -62,7 +64,9 @@ function createCampaign(name) {
 // Carica una campagna nella schermata di gioco.
 function load(c) {
   stop();
+  runId++; busy = false; drawSkip = true;
   if (BattleUI.active) BattleUI.skip();
+  clearDraw();
   cur = c;
   games = c.games.map(id => GAME_BY_ID[id]);
   colors = c.colors;
@@ -101,12 +105,13 @@ function paint() {
   });
   coversEl.textContent = '';
   const pct = 100 / SIZE;
-  for (const p of Engine.placements(state)) {
+  placementsNow = Engine.placements(state);
+  for (const p of placementsNow) {
     const g = games[p.owner];
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'cover' + (selected === p.owner ? ' sel' : '');
     b.style.cssText = `left:${p.c * pct}%;top:${p.r * pct}%;width:${p.s * pct}%;height:${p.s * pct}%;--c:${colors[p.owner]};--s:${p.s}`;
-    b.title = g.name;
+    b.title = g.name; b.dataset.owner = p.owner;
     const img = document.createElement('img'); img.src = g.cover; img.alt = '';
     const s = document.createElement('span'); s.textContent = g.name;
     b.append(img, s);
@@ -117,6 +122,7 @@ function paint() {
 }
 
 function select(o) {
+  if (busy) return;   // durante il sorteggio/la lotta la mappa non è selezionabile
   selected = o;
   coversEl.querySelectorAll('.sel').forEach(e => e.classList.remove('sel'));
   const size = state.owner.filter(x => x === o).length;
@@ -162,12 +168,12 @@ function showBattle() {
   }
 }
 
+// Risolve lo scontro nel motore (lo stato cambia subito, la mappa si ridisegna a fine sfida).
 function doStep() {
   lastBattle = null;
   const ev = Engine.step(state, realBattle.checked ? resolve : undefined, modeSel.value);
   if (!ev) return null;
   ev.rounds = lastBattle && lastBattle.rounds;
-  addLog(ev);
   cur.log.push({ turn: ev.turn, attacker: ev.attacker, defender: ev.defender, dir: ev.dir, winner: ev.winner, gained: ev.gained, rounds: ev.rounds || 0 });
   scheduleSave();
   return ev;
@@ -177,61 +183,185 @@ function doStep() {
 async function playBattleScreen(ev) {
   if (!lastBattle || !showBattles.checked) return;
   const side = i => ({ fighter: fighter(i), color: colors[i], cover: games[i].cover });
-  await BattleUI.play({ a: side(ev.attacker), b: side(ev.defender), battle: lastBattle, speed: +battleSpeed.value, manual: battleMode.value === 'manual' });
+  await BattleUI.play({ a: side(ev.attacker), b: side(ev.defender), battle: lastBattle, speed: +battleSpeed.value,
+                        manual: battleMode.value === 'manual', stop: running ? () => stop() : null });
+}
+
+// ---- sorteggio animato: chi attacca -> direzione -> freccia sulla mappa ----
+const boardEl = $('board'), hudEl = $('hud'), hudMain = $('hudMain'), compassEl = $('compass'), arrowEl = $('arrow');
+const DIRS = ['N', 'E', 'S', 'O'];
+const wait = ms => new Promise(r => (drawSkip ? r() : setTimeout(r, ms / (+battleSpeed.value || 1))));
+const NS = 'http://www.w3.org/2000/svg';
+
+function mark(el, cls) {
+  coversEl.querySelectorAll('.' + cls).forEach(e => e.classList.remove(cls));
+  if (el) el.classList.add(cls);
+}
+
+function coverCenter(owner) {
+  const p = placementsNow.find(x => x.owner === owner);
+  return p ? { x: p.c + p.s / 2, y: p.r + p.s / 2, s: p.s } : null;
+}
+
+function drawArrow(from, to) {
+  arrowEl.textContent = '';
+  const dx = to.x - from.x, dy = to.y - from.y, len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len;
+  // parte dal bordo della copertina che attacca e arriva al bordo di quella attaccata
+  const cut = a => (len < 2.2 ? 0 : Math.min(a.s / 2 * 0.95, len * 0.35));
+  const x1 = from.x + ux * cut(from), y1 = from.y + uy * cut(from), x2 = to.x - ux * cut(to), y2 = to.y - uy * cut(to);
+  const L = Math.hypot(x2 - x1, y2 - y1), head = Math.min(0.85, Math.max(0.4, L * 0.45));
+  const bx = x2 - ux * head, by = y2 - uy * head;   // base della punta
+  const mk = (tag, attrs) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); arrowEl.appendChild(e); return e; };
+  const line = (cls, w) => mk('line', { class: cls, x1, y1, x2: bx, y2: by, 'stroke-width': w, 'stroke-linecap': 'round' });
+  const shadow = line('a-shadow', 0.42), main = line('a-main', 0.24);
+  const pts = `${x2},${y2} ${bx - uy * head * 0.55},${by + ux * head * 0.55} ${bx + uy * head * 0.55},${by - ux * head * 0.55}`;
+  const tip = mk('polygon', { class: 'a-head', points: pts });
+  const Lb = Math.max(0.01, L - head);
+  for (const l of [shadow, main]) { l.style.strokeDasharray = Lb; l.style.strokeDashoffset = drawSkip ? 0 : Lb; }
+  tip.style.opacity = drawSkip ? 1 : 0;
+  arrowEl.removeAttribute('hidden');
+  if (!drawSkip) {
+    void arrowEl.getBoundingClientRect();   // forza il ridisegno, poi parte la transizione
+    const t = 0.6 / (+battleSpeed.value || 1);
+    for (const l of [shadow, main]) { l.style.transition = `stroke-dashoffset ${t}s linear`; l.style.strokeDashoffset = 0; }
+    tip.style.transition = `opacity .15s linear ${t}s`; tip.style.opacity = 1;
+  }
+  return 600;
+}
+
+function clearDraw() {
+  hudEl.hidden = true;
+  arrowEl.setAttribute('hidden', ''); arrowEl.textContent = '';
+  coversEl.querySelectorAll('.pick, .target').forEach(e => e.classList.remove('pick', 'target'));
+  compassEl.querySelectorAll('.on').forEach(e => e.classList.remove('on'));
+}
+
+async function runDraw(ev) {
+  drawSkip = false;
+  const covers = [...coversEl.querySelectorAll('.cover')];
+  const byOwner = o => covers.find(c => +c.dataset.owner === o);
+  const atkEl = byOwner(ev.attacker), defEl = byOwner(ev.defender);
+  compassEl.classList.remove('lit');
+  compassEl.querySelectorAll('.on').forEach(e => e.classList.remove('on'));
+  hudEl.hidden = false;
+  hudEl.scrollIntoView({ block: 'start', behavior: 'smooth' });
+
+  // 1) chi attacca: la selezione salta di copertina in copertina rallentando, e si ferma sul sorteggiato
+  hudMain.textContent = '🎲 Chi attacca?';
+  const steps = Math.min(20, covers.length + 6);
+  let prev = null;
+  for (let i = 0; i < steps && !drawSkip; i++) {
+    let el = atkEl;
+    if (i < steps - 1) do { el = covers[Math.floor(Math.random() * covers.length)]; } while (el === prev && covers.length > 1);
+    mark(el, 'pick'); prev = el;
+    await wait(55 + i * i * 1.2);
+  }
+  mark(atkEl, 'pick');
+  hudMain.textContent = `⚔ Attacca: ${games[ev.attacker].name}`;
+  await wait(800);
+
+  // 2) direzione: la bussola gira e si ferma sulla direzione sorteggiata
+  hudMain.textContent = '🧭 In che direzione?';
+  compassEl.classList.add('lit');
+  const k = 11 + Math.floor(Math.random() * 3), start = ((DIRS.indexOf(ev.dir) - (k - 1)) % 4 + 4) % 4;
+  for (let i = 0; i < k && !drawSkip; i++) {
+    compassEl.querySelectorAll('.on').forEach(e => e.classList.remove('on'));
+    compassEl.querySelector(`[data-d="${DIRS[(start + i) % 4]}"]`).classList.add('on');
+    await wait(70 + i * 22);
+  }
+  compassEl.querySelectorAll('.on').forEach(e => e.classList.remove('on'));
+  compassEl.querySelector(`[data-d="${ev.dir}"]`).classList.add('on');
+  hudMain.textContent = `🧭 Direzione: ${DIR_NAME[ev.dir]}`;
+  await wait(800);
+
+  // 3) freccia dal gioco che attacca a quello attaccato
+  const a = coverCenter(ev.attacker), d = coverCenter(ev.defender);
+  if (a && d) { drawArrow(a, d); await wait(700); }
+  mark(defEl, 'target');
+  hudMain.textContent = `${games[ev.attacker].name} ➜ ${games[ev.defender].name}`;
+  await wait(1100);
+}
+$('hudSkip').onclick = () => { drawSkip = true; };
+
+// ---- una sfida completa: sorteggio, lotta, aggiornamento della mappa ----
+function refreshButtons(finished) {
+  const over = finished !== undefined ? finished : state && state.alive === 1;
+  stepBtn.disabled = allBtn.disabled = busy || over;
+  playBtn.disabled = over || (busy && !running);
+}
+
+async function fight() {
+  const my = runId;
+  busy = true; refreshButtons();
+  const ev = doStep();
+  if (!ev) { busy = false; finish(); return null; }
+  try {
+    if (drawAnim.checked) await runDraw(ev);
+    if (my !== runId) return null;
+    await playBattleScreen(ev);
+    if (my !== runId) return null;
+  } finally { hudEl.hidden = true; }
+  clearDraw();
+  addLog(ev);
+  busy = false;
+  paint(); showBattle();
+  if (state.alive === 1) finish(); else { readyMsg(); refreshButtons(); }
+  return ev;
+}
+
+function readyMsg() {
+  infoEl.textContent = 'Sfida conclusa. Guarda la mappa, tocca un gioco per la scheda e premi «Prossima sfida» quando vuoi.';
 }
 
 function finish() {
   stop();
-  setButtons(false);
+  busy = false;
   const w = state.owner[0];
   select(w);
+  refreshButtons(true);
   infoEl.textContent = '';
   const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = colors[w];
   infoEl.append(dot, `🏆 ${games[w].name} domina la mappa dopo ${state.turn} scontri!`);
   scheduleSave();
 }
 
-function setButtons(active) { playBtn.disabled = stepBtn.disabled = allBtn.disabled = !active; }
+function setButtons(active) { refreshButtons(!active); }
 
-function stop() { running = false; clearTimeout(timer); timer = null; playBtn.textContent = '▶ Avvia'; }
+let wake = null;
+function stop() {
+  running = false;
+  clearTimeout(timer); timer = null;
+  if (wake) { const w = wake; wake = null; w(); }
+  playBtn.textContent = '🔁 Auto';
+  if (state) refreshButtons();
+}
 
-let running = false, busy = false;
-
-async function loop() {
-  if (!running) return;
-  busy = true;
-  const ev = doStep();
-  if (ev) await playBattleScreen(ev);
-  busy = false;
-  paint(); showBattle();
-  if (!ev || state.alive === 1) return finish();
-  if (running) timer = setTimeout(loop, +speedSel.value);
+// Avanzamento automatico: una sfida dopo l'altra, con una pausa tra l'una e l'altra.
+async function autoLoop() {
+  while (running) {
+    const ev = await fight();
+    if (!ev || state.alive === 1 || !running) break;
+    await new Promise(r => { wake = r; timer = setTimeout(r, +speedSel.value); });
+  }
+  if (running) stop();
 }
 
 playBtn.onclick = () => {
   if (running) return stop();
   running = true;
   playBtn.textContent = '⏸ Pausa';
-  loop();
+  refreshButtons();
+  autoLoop();
 };
-stepBtn.onclick = async () => {
-  if (busy) return;
-  stop();
-  busy = true;
-  const ev = doStep();
-  if (ev) await playBattleScreen(ev);
-  busy = false;
-  paint(); showBattle();
-  if (state.alive === 1) finish();
-};
+stepBtn.onclick = () => { if (!busy) { stop(); fight(); } };
 allBtn.onclick = () => {
   if (busy) return;
   stop();
-  while (state.alive > 1 && doStep()) { /* esegue tutti gli scontri senza schermata */ }
+  while (state.alive > 1) { const ev = doStep(); if (!ev) break; addLog(ev); }
   paint(); finish();
 };
 // opzioni della barra (velocità, lotta, ecc.) ricordate tra una sessione e l'altra
-for (const id of ['speedSel', 'modeSel', 'realBattle', 'showBattles', 'battleMode', 'battleSpeed']) {
+for (const id of ['speedSel', 'modeSel', 'realBattle', 'showBattles', 'drawAnim', 'battleMode', 'battleSpeed']) {
   const e = $(id), key = 'bgi.opt.' + id, box = e.type === 'checkbox';
   try {
     const v = localStorage.getItem(key);
@@ -316,7 +446,9 @@ window.Game = {
   },
   async leave() {
     stop();
+    runId++; drawSkip = true; busy = false;
     if (BattleUI.active) BattleUI.skip();
+    clearDraw();
     await saveNow();
     gameViewEl.hidden = true;
     menuEl.hidden = false;
