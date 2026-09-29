@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Board Game Imperialism</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Space+Grotesk:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>Board Game Imperialism</h1>
+  <p class="sub">225 giochi, un solo vincitore.</p>
+</header>
+<main>
+  <section class="toolbar">
+    <button id="shuffleBtn" type="button">🎲 Rimescola mappa</button>
+    <span id="stats" class="stats"></span>
+  </section>
+  <div id="board" class="board" role="grid" aria-label="Mappa 15 per 15"></div>
+  <aside id="info" class="info">Tocca una casella per vedere il gioco.</aside>
+</main>
+<script src="data/games.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
