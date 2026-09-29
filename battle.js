@@ -67,14 +67,16 @@
   }
 
   // IA: valuta ogni mossa e ne sceglie una a sorte, pesata sul valore (la migliore prevale ma non sempre).
+  // Regola: un gioco non può usare la stessa mossa due volte di fila (att.last = ultima mossa usata).
   function chooseMove(att, def, rng) {
     const dmgMoves = att.f.moves.filter(m => m.kind !== 'status');
     const myBest = Math.max(...dmgMoves.map(m => expected(att, def, m)));
     const vals = att.f.moves.map(m => m.kind === 'status' ? statusValue(att, def, m, myBest) : expected(att, def, m));
-    const w = vals.map(v => Math.pow(Math.max(v, 0.01), 3));
+    // la mossa appena usata ha peso 0: le altre restano pesate sul loro valore
+    const w = vals.map((v, i) => (att.f.moves[i].name === att.last ? 0 : Math.pow(Math.max(v, 0.01), 3)));
     let r = rng() * w.reduce((a, b) => a + b, 0);
-    for (let i = 0; i < w.length; i++) { r -= w[i]; if (r <= 0) return att.f.moves[i]; }
-    return att.f.moves[0];
+    for (let i = 0; i < w.length; i++) { r -= w[i]; if (w[i] > 0 && r <= 0) return att.f.moves[i]; }
+    return att.f.moves.find(m => m.name !== att.last) || att.f.moves[0];
   }
 
   // fight(fa, fb) -> {winner: 0|1, rounds, events:[{side, text, hp:[a,b], ...}], hp:[a,b]}
@@ -118,6 +120,7 @@
 
     function doMove(me, foe, i) {
       const m = chooseMove(me, foe, rng);
+      me.last = m.name;
       push(i, `${me.f.name} usa ${m.name}!`, { kind: 'use', move: m.name });
       if (rng() * 100 >= m.acc) { push(i, 'Ma manca il bersaglio!', { kind: 'miss' }); return; }
       if (m.kind === 'status') {
