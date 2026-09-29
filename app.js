@@ -9,7 +9,7 @@ const LOG_MAX = 300;
 
 const $ = id => document.getElementById(id);
 const gridEl = $('grid'), coversEl = $('covers'), infoEl = $('info'), statsEl = $('stats'), logEl = $('log');
-const playBtn = $('playBtn'), stepBtn = $('stepBtn'), allBtn = $('allBtn'), speedSel = $('speedSel');
+const playBtn = $('playBtn'), stepBtn = $('stepBtn'), allBtn = $('allBtn'), speedSel = $('speedSel'), modeSel = $('modeSel');
 
 let games = [], colors = [], state = null, cellEls = [], timer = null, selected = null;
 
@@ -91,14 +91,14 @@ function select(o) {
 function addLog(ev) {
   const li = document.createElement('li');
   const a = games[ev.attacker].name, d = games[ev.defender].name, w = games[ev.winner].name;
-  li.textContent = `#${ev.turn} ${a} attacca ${d} (verso ${DIR_NAME[ev.dir]}): vince ${w}, +${ev.gained} ${ev.gained === 1 ? 'casella' : 'caselle'}`;
+  li.textContent = `#${ev.turn} ${a} attacca ${d} (confine ${DIR_NAME[ev.dir]}): vince ${w}, +${ev.gained} ${ev.gained === 1 ? 'casella' : 'caselle'}`;
   li.style.borderLeftColor = colors[ev.winner];
   logEl.prepend(li);
   while (logEl.children.length > LOG_MAX) logEl.lastChild.remove();
 }
 
 function doStep() {
-  const ev = Engine.step(state);
+  const ev = Engine.step(state, undefined, modeSel.value);
   if (!ev) return false;
   addLog(ev);
   return true;

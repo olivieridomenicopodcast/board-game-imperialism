@@ -34,9 +34,17 @@
     return out;
   }
 
-  function step(state, resolve = coinFlip) {
-    const pairs = borders(state);
+  // mode 'game' (default): si sorteggia un gioco vivo con la stessa probabilità per tutti, poi un suo
+  //   confine (casella+direzione) a caso: chi ha un impero grande non attacca più spesso degli altri.
+  // mode 'edge': si sorteggia un confine qualsiasi della mappa: chi ha più confini attacca più spesso.
+  function step(state, resolve = coinFlip, mode = 'game') {
+    let pairs = borders(state);
     if (!pairs.length) return null;
+    if (mode === 'game') {
+      const attackers = [...new Set(pairs.map(p => state.owner[p.from]))];
+      const a = attackers[rand(attackers.length)];
+      pairs = pairs.filter(p => state.owner[p.from] === a);
+    }
     const p = pairs[rand(pairs.length)];
     const attacker = state.owner[p.from], defender = state.owner[p.to];
     const winner = resolve(attacker, defender);
