@@ -1,0 +1,33 @@
+/* Schermata di lotta stile Game Boy Color. Solo stati statici: l'unica animazione è la barra HP (via JS). */
+.bs{--hp-green:#38c030;--hp-orange:#f09020;--hp-red:#e02828;--ink:#181818;
+  position:fixed;inset:0;z-index:50;background:rgba(10,8,6,.86);display:flex;align-items:center;justify-content:center;padding:8px}
+.bs.hidden{display:none}
+.gb{position:relative;container-type:inline-size;width:min(96vw,calc(92vh * 10 / 9),760px);aspect-ratio:10/9;
+  background:linear-gradient(#f4f8e4 0 52%,#c8e0a0 52% 100%);border:.9cqw solid var(--ink);border-radius:1.6cqw;
+  box-shadow:0 0 0 .6cqw #7a7a6a;font-family:'Press Start 2P','Courier New',monospace;color:var(--ink);overflow:hidden;image-rendering:pixelated}
+.sprite{position:absolute;width:31cqw;aspect-ratio:1}
+.sprite.s1{right:8cqw;top:6cqw}
+.sprite.s0{left:8cqw;bottom:33cqw}
+.plat{position:absolute;left:-4cqw;right:-4cqw;bottom:-2.5cqw;height:7cqw;border-radius:50%;opacity:.85;border:.5cqw solid var(--ink)}
+.sprite img{position:relative;width:100%;height:100%;object-fit:contain;background:rgba(255,255,255,.55);border:.6cqw solid var(--ink);border-radius:.8cqw}
+.box{position:absolute;width:47cqw;background:#fffbe8;border:.7cqw solid var(--ink);border-radius:1.2cqw;padding:1.2cqw 1.6cqw;box-shadow:.6cqw .6cqw 0 rgba(0,0,0,.25)}
+.box.b1{left:3cqw;top:4cqw}
+.box.b0{right:3cqw;bottom:32cqw}
+.bname{display:flex;justify-content:space-between;align-items:center;gap:1cqw;font-size:2.1cqw;line-height:1.3}
+.nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.ty{flex:none;font-size:1.5cqw;padding:.4cqw .8cqw;border-radius:1cqw;color:#111;border:.2cqw solid var(--ink)}
+.brow{display:flex;align-items:center;gap:1.2cqw;margin-top:1.1cqw}
+.tag{flex:none;min-width:5.4cqw;font-size:1.5cqw;text-align:center;padding:.4cqw .6cqw;border-radius:.6cqw;visibility:hidden;color:#fff;border:.2cqw solid var(--ink)}
+.tag.on{visibility:visible}
+.tag.c-paralisi{background:#d8a800}.tag.c-sonno{background:#7a7a90}.tag.c-confusione{background:#c050b0}.tag.c-debito{background:#7a3ea0}.tag.c-sabotaggio{background:#b04030}
+.hpw{flex:1;display:flex;align-items:center;gap:.8cqw;background:#404040;border-radius:1cqw;padding:.5cqw .9cqw}
+.hplabel{color:#f8b030;font-size:1.6cqw}
+.track{flex:1;height:1.7cqw;background:#e8e8d8;border-radius:.9cqw;overflow:hidden;border:.2cqw solid var(--ink)}
+.fill{height:100%;width:100%;background:var(--hp-green)}
+.hpnum{margin-top:.9cqw;font-size:1.8cqw;text-align:right}
+.textbox{position:absolute;left:2cqw;right:2cqw;bottom:2cqw;height:27cqw;background:#fff;border:.8cqw solid var(--ink);border-radius:1.4cqw;
+  box-shadow:inset 0 0 0 .6cqw #e8e8e8,inset 0 0 0 1cqw #48607a;padding:3cqw 4cqw}
+.textbox p{margin:0;font-size:2.7cqw;line-height:1.7;overflow:hidden}
+.arrow{position:absolute;right:3.4cqw;bottom:2.2cqw;font-size:2.4cqw;visibility:hidden}
+.arrow::before{content:'▼'}
+.skipbtn{position:absolute;right:2cqw;top:1.2cqw;font:inherit;font-size:1.5cqw;background:#fffbe8;color:var(--ink);border:.3cqw solid var(--ink);border-radius:.8cqw;padding:.7cqw 1.1cqw;cursor:pointer}

@@ -6,7 +6,9 @@
 <title>Board Game Imperialism</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Space+Grotesk:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="battle.css">
 </head>
 <body>
 <header>
@@ -25,6 +27,10 @@
       <select id="modeSel"><option value="game" selected>Per gioco</option><option value="edge">Per confine</option></select>
     </label>
     <label class="speed"><input id="realBattle" type="checkbox" checked> Lotta vera</label>
+    <label class="speed"><input id="showBattles" type="checkbox" checked> Vedi le lotte</label>
+    <label class="speed">Velocità lotta
+      <select id="battleSpeed"><option value="1">Normale</option><option value="2" selected>Veloce</option><option value="4">Turbo</option></select>
+    </label>
     <button id="shuffleBtn" type="button" class="ghost">🎲 Rimescola mappa</button>
   </section>
   <div id="stats" class="stats"></div>
@@ -39,6 +45,7 @@
 <script src="data/types.js"></script>
 <script src="data/moves.js"></script>
 <script src="battle.js"></script>
+<script src="battle-ui.js"></script>
 <script src="engine.js"></script>
 <script src="app.js"></script>
 </body>

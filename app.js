@@ -9,7 +9,7 @@ const LOG_MAX = 300;
 
 const $ = id => document.getElementById(id);
 const gridEl = $('grid'), coversEl = $('covers'), infoEl = $('info'), statsEl = $('stats'), logEl = $('log');
-const playBtn = $('playBtn'), stepBtn = $('stepBtn'), allBtn = $('allBtn'), speedSel = $('speedSel'), modeSel = $('modeSel'), realBattle = $('realBattle'), battleLogEl = $('battleLog');
+const playBtn = $('playBtn'), stepBtn = $('stepBtn'), allBtn = $('allBtn'), speedSel = $('speedSel'), modeSel = $('modeSel'), realBattle = $('realBattle'), showBattles = $('showBattles'), battleSpeed = $('battleSpeed'), battleLogEl = $('battleLog');
 
 let games = [], colors = [], state = null, cellEls = [], timer = null, selected = null;
 
@@ -51,6 +51,7 @@ function pickGames() {
 
 function newRun() {
   stop();
+  if (BattleUI.active) BattleUI.skip();
   games = pickGames();
   colors = assignColors();
   state = Engine.create(CELLS);
@@ -144,10 +145,17 @@ function showBattle() {
 function doStep() {
   lastBattle = null;
   const ev = Engine.step(state, realBattle.checked ? resolve : undefined, modeSel.value);
-  if (!ev) return false;
+  if (!ev) return null;
   ev.rounds = lastBattle && lastBattle.rounds;
   addLog(ev);
-  return true;
+  return ev;
+}
+
+// mostra la schermata di lotta per lo scontro appena risolto (attaccante in basso a sinistra)
+async function playBattleScreen(ev) {
+  if (!lastBattle || !showBattles.checked) return;
+  const side = i => ({ fighter: fighter(i), color: colors[i], cover: games[i].cover });
+  await BattleUI.play({ a: side(ev.attacker), b: side(ev.defender), battle: lastBattle, speed: +battleSpeed.value });
 }
 
 function finish() {
@@ -162,23 +170,41 @@ function finish() {
 
 function setButtons(active) { playBtn.disabled = stepBtn.disabled = allBtn.disabled = !active; }
 
-function stop() { clearTimeout(timer); timer = null; playBtn.textContent = '▶ Avvia'; }
+function stop() { running = false; clearTimeout(timer); timer = null; playBtn.textContent = '▶ Avvia'; }
 
-function loop() {
-  if (!doStep() || state.alive === 1) { paint(); return finish(); }
+let running = false, busy = false;
+
+async function loop() {
+  if (!running) return;
+  busy = true;
+  const ev = doStep();
+  if (ev) await playBattleScreen(ev);
+  busy = false;
   paint(); showBattle();
-  timer = setTimeout(loop, +speedSel.value);
+  if (!ev || state.alive === 1) return finish();
+  if (running) timer = setTimeout(loop, +speedSel.value);
 }
 
 playBtn.onclick = () => {
-  if (timer) return stop();
+  if (running) return stop();
+  running = true;
   playBtn.textContent = '⏸ Pausa';
-  timer = setTimeout(loop, 0);
+  loop();
 };
-stepBtn.onclick = () => { stop(); doStep(); paint(); showBattle(); if (state.alive === 1) finish(); };
-allBtn.onclick = () => {
+stepBtn.onclick = async () => {
+  if (busy) return;
   stop();
-  while (state.alive > 1 && doStep()) { /* esegue tutti gli scontri */ }
+  busy = true;
+  const ev = doStep();
+  if (ev) await playBattleScreen(ev);
+  busy = false;
+  paint(); showBattle();
+  if (state.alive === 1) finish();
+};
+allBtn.onclick = () => {
+  if (busy) return;
+  stop();
+  while (state.alive > 1 && doStep()) { /* esegue tutti gli scontri senza schermata */ }
   paint(); finish();
 };
 $('shuffleBtn').onclick = newRun;
