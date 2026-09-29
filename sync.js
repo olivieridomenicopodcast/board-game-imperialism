@@ -33,7 +33,11 @@
         body: body ? JSON.stringify(body) : undefined,
       });
     } catch (e) { throw new Error('Impossibile contattare GitHub (sei online?)'); }
-    if (res.status === 404) return { status: 404 };
+    if (res.status === 404) {
+      if (method === 'GET') return { status: 404 };
+      throw new Error('GitHub: non trovato (404). Controlla nome del repository, branch e permessi del token.');
+    }
+    if (res.status === 422) throw new Error('GitHub ha rifiutato la richiesta (422): il branch esiste?');
     if (res.status === 401) throw new Error('Token non valido o scaduto.');
     if (res.status === 403) throw new Error('Accesso negato: controlla i permessi del token (Contents: Read and write).');
     if (!res.ok) throw new Error('Errore GitHub ' + res.status);
@@ -52,13 +56,13 @@
       const c = config();
       const r = await Dialog.form('Sync con GitHub', [
         { name: 'repo', label: 'Repository (utente/nome)', value: c.repo || '', placeholder: 'olivieridomenicopodcast/board-game-imperialism' },
-        { name: 'branch', label: 'Branch', value: c.branch || 'main' },
+        { name: 'branch', label: 'Branch (vuoto = quello predefinito del repository)', value: c.branch || '' },
         { name: 'dir', label: 'Cartella dei salvataggi', value: c.dir || 'saves' },
         { name: 'token', label: 'Token personale GitHub', value: c.token || '', type: 'password',
           hint: 'Resta solo in questo browser. Crea un token fine-grained su un solo repo con permesso Contents: Read and write.' },
       ]);
       if (!r) return false;
-      saveConfig({ repo: r.repo.trim(), branch: r.branch.trim() || 'main', dir: r.dir.trim() || 'saves', token: r.token.trim() });
+      saveConfig({ repo: r.repo.trim(), branch: r.branch.trim(), dir: r.dir.trim() || 'saves', token: r.token.trim() });
       return ready(config());
     },
 
@@ -72,6 +76,10 @@
       const cfg = config();
       const r = await gh(cfg, 'GET', `/repos/${cfg.repo}`);
       if (r.status === 404) throw new Error('Repository non trovato (nome sbagliato o token senza accesso).');
+      if (cfg.branch) {
+        const b = await gh(cfg, 'GET', `/repos/${cfg.repo}/branches/${encodeURIComponent(cfg.branch)}`);
+        if (b.status === 404) throw new Error(`Il branch "${cfg.branch}" non esiste in questo repository (il branch predefinito è "${r.data.default_branch}"). Lascia il campo Branch vuoto per usare quello predefinito.`);
+      }
       return r.data.full_name;
     },
 
@@ -79,7 +87,10 @@
     async listRemote() {
       const cfg = config();
       const res = await gh(cfg, 'GET', `/repos/${cfg.repo}/contents/${dir(cfg)}${branchQ(cfg)}`);
-      if (res.status === 404) return [];
+      if (res.status === 404) {                       // cartella assente oppure branch/repository sbagliato?
+        await this.test();
+        return [];
+      }
       const out = [];
       for (const f of res.data.filter(f => f.type === 'file' && f.name.endsWith('.json'))) {
         const one = await gh(cfg, 'GET', `/repos/${cfg.repo}/contents/${f.path.split('/').map(encodeURIComponent).join('/')}${branchQ(cfg)}`);
