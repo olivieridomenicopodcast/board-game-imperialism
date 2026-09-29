@@ -71,9 +71,13 @@
         sc.append(` territorio: ${ctx.territory} ${ctx.territory === 1 ? 'casella' : 'caselle'} · scontri vinti: ${ctx.wins}`);
       }
 
+      if (fighter.balance) {
+        const bl = h('div', 'dim', box);
+        bl.textContent = `⚖ Bonus di bilanciamento: +${Math.round(fighter.balance * 100)}% ad Attacco e Difesa (calcolato dalle simulazioni)`;
+      }
       const st = section(box, 'Statistiche');
       const bars = h('div', 'bars', st);
-      bar(bars, 'HP', s.hp, 170); bar(bars, 'ATT', s.atk, 110); bar(bars, 'DIF', s.def, 115); bar(bars, 'VEL', s.spd, 110);
+      bar(bars, 'HP', s.hp, 170); bar(bars, 'ATT', fighter.atk, 110); bar(bars, 'DIF', fighter.def, 115); bar(bars, 'VEL', s.spd, 110);
 
       const mv = section(box, 'Mosse');
       const ul = h('ul', 'moves', mv);

@@ -3,7 +3,7 @@
 // Uso: node tools/simulate.js [lotte-per-gioco]
 global.window = global;
 const path = require('path'), root = path.join(__dirname, '..');
-for (const f of ['games', 'stats', 'types', 'moves']) require(path.join(root, 'data', f + '.js'));
+for (const f of ['games', 'stats', 'types', 'moves', 'balance']) require(path.join(root, 'data', f + '.js'));
 require(path.join(root, 'battle.js'));
 const N = +process.argv[2] || 200;
 const F = GAMES.map(g => Battle.makeFighter(g, STATS[g.id]));

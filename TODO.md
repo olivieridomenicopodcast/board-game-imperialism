@@ -9,3 +9,4 @@
 - [x] Passo 7: schermata di lotta stile Game Boy (battle-ui.js, battle.css)
 - [x] Passo 8: campagne multiple, salvataggio automatico, sync GitHub (storage.js, sync.js, menu.js, dialog.js)
 - [ ] Correzioni di tipo fatte dalla scheda (salvate nel browser): esportale dal Dex (⬇ Esporta correzioni tipi) e portale in `data/type_overrides.json`.
+- [ ] Se cambi stat, tipi o mosse (anche dalla scheda), rilancia `node tools/balance.js 0.22` per rigenerare `data/balance.js` (bonus di bilanciamento).
