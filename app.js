@@ -430,9 +430,13 @@ playBtn.onclick = () => {
   autoLoop();
 };
 stepBtn.onclick = () => { if (!busy) { stop(); fight(); } };
-allBtn.onclick = () => {
+allBtn.onclick = async () => {
   if (busy) return;
   stop();
+  const left = state.alive - 1;
+  if (!(await Dialog.confirm(`Vuoi simulare TUTTE le sfide rimaste (${left})? La campagna finirà subito, senza vedere le lotte, e non si può annullare.`,
+        { okLabel: 'Simula tutto', cancelLabel: 'No, annulla', danger: true, title: '⏩ Simula tutto' }))) return;
+  if (busy) return;
   while (state.alive > 1) { const ev = doStep(); if (!ev) break; addLog(ev); }
   paint(); finish(); Sfx.play('victory'); updateTitles();
 };
